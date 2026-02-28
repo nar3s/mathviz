@@ -39,6 +39,7 @@ from pydantic import BaseModel, Field
 
 from config.settings import settings
 from generator.planner import generate_scene_plan
+from storage.r2 import upload_json, upload_video
 from generator.validator import validate_beats
 from narration.audio_cache import AudioCache
 from narration.sarvam_client import SarvamTTS
@@ -198,6 +199,21 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
 
         log.info("[%s] Plan: '%s', %d beats", job_id, plan["title"], len(beats))
 
+        # Persist LLM plan to R2 (best-effort, non-blocking)
+        if settings.r2_enabled:
+            try:
+                await asyncio.to_thread(
+                    upload_json,
+                    plan,
+                    settings.r2_bucket_name,
+                    settings.r2_account_id,
+                    settings.r2_access_key_id,
+                    settings.r2_secret_access_key,
+                    f"plans/{job_id}.json",
+                )
+            except Exception as exc:
+                log.warning("[%s] R2 plan upload failed (non-fatal): %s", job_id, exc)
+
         # ── Step 2: Beat validation ────────────────────────────────────────
         errors = validate_beats(beats)
         if errors:
@@ -326,10 +342,28 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
         render_time = round(time.monotonic() - t_start, 1)
         log.info("[%s] Done in %.1fs → %s", job_id, render_time, final_path)
 
+        # ── Step 8: Upload to R2 (if configured) ──────────────────
+        video_url = f"/output/{final_path.name}"
+        if settings.r2_enabled:
+            try:
+                await _update_job(job_id, {"status": "uploading"})
+                video_url = await asyncio.to_thread(
+                    upload_video,
+                    final_path,
+                    settings.r2_bucket_name,
+                    settings.r2_account_id,
+                    settings.r2_access_key_id,
+                    settings.r2_secret_access_key,
+                    settings.r2_public_url,
+                )
+                log.info("[%s] Uploaded to R2: %s", job_id, video_url)
+            except Exception as exc:
+                log.warning("[%s] R2 upload failed (falling back to local URL): %s", job_id, exc)
+
         beats_dropped = len(beats) - len(final_segments)
         await _update_job(job_id, {
             "status":              "completed",
-            "video_url":           f"/output/{final_path.name}",
+            "video_url":           video_url,
             "render_time_seconds": render_time,
             "beats_rendered":      len(final_segments),
             "beats_dropped":       beats_dropped,

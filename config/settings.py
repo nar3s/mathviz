@@ -85,6 +85,18 @@ class Settings(BaseSettings):
         description="Max output tokens for the Phase-1 outline call",
     )
 
+    # ── Cloudflare R2 Storage (optional) ──────────────────────────
+    r2_account_id: str = Field(default="", description="Cloudflare account ID")
+    r2_access_key_id: str = Field(default="", description="R2 API token access key ID")
+    r2_secret_access_key: str = Field(default="", description="R2 API token secret access key")
+    r2_bucket_name: str = Field(default="", description="R2 bucket name")
+    r2_public_url: str = Field(default="", description="Public base URL for the R2 bucket (e.g. https://pub-xxx.r2.dev)")
+
+    @property
+    def r2_enabled(self) -> bool:
+        return bool(self.r2_account_id and self.r2_access_key_id and
+                    self.r2_secret_access_key and self.r2_bucket_name and self.r2_public_url)
+
     # ── FastAPI / Rendering ────────────────────────────────────────
     max_render_workers: int = Field(
         default=4,
