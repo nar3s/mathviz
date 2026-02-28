@@ -33,6 +33,7 @@ _os.environ.setdefault("PYTHONUTF8", "1")
 _sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -57,6 +58,14 @@ app = FastAPI(
     title="MathViz Engine",
     description="Generate animated math explainer videos from a topic description.",
     version="2.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── In-memory job store ───────────────────────────────────────────────────────
