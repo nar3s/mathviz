@@ -1,0 +1,506 @@
+{
+  "title": "Eigenvalues & Eigenvectors: The Vectors That Stay in Line",
+  "beats": [
+    {
+      "beat_id": "hook_stretching_not_rotating_1",
+      "narration": "Imagine you grab every point in space and stretch, shear, or rotate it — a linear transformation reshapes the entire plane at once.",
+      "visual": {
+        "type": "vector_transform",
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            0,
+            1.5
+          ]
+        ],
+        "vectors": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            -1,
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "beat_id": "hook_stretching_not_rotating_2",
+      "narration": "Watch what happens to a handful of arrows: most of them swing off in completely new directions. They twist, they tilt, they refuse to stay put.",
+      "visual": {
+        "type": "vector_show",
+        "vectors": [
+          {
+            "coords": [
+              1,
+              2
+            ],
+            "label": "original",
+            "color": "#4488ff"
+          },
+          {
+            "coords": [
+              4,
+              3
+            ],
+            "label": "transformed",
+            "color": "#ff4444"
+          },
+          {
+            "coords": [
+              -1,
+              1
+            ],
+            "label": "original",
+            "color": "#4488ff"
+          },
+          {
+            "coords": [
+              -1,
+              1.5
+            ],
+            "label": "transformed",
+            "color": "#ff4444"
+          }
+        ]
+      }
+    },
+    {
+      "beat_id": "hook_stretching_not_rotating_3",
+      "narration": "But now look at this one special vector — under the very same transformation, it doesn't turn at all. It just stretches, perfectly along its original line.",
+      "visual": {
+        "type": "vector_transform",
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            0,
+            1.5
+          ]
+        ],
+        "vectors": [
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "beat_id": "hook_stretching_not_rotating_4",
+      "narration": "These stubborn vectors that refuse to turn — only scaling up or flipping — are the heroes of our story. They're called eigenvectors, and they unlock the hidden structure of any transformation.",
+      "visual": {
+        "type": "title_card",
+        "title": "Eigenvalues & Eigenvectors",
+        "subtitle": "The Vectors That Stay in Line"
+      }
+    },
+    {
+      "beat_id": "core_definition_1",
+      "narration": "So how do we capture that idea of a vector that refuses to turn? We write it as one elegant equation: A times v equals lambda times v.",
+      "visual": {
+        "type": "equation_reveal",
+        "latex": "A\\vec{v} = \\lambda \\vec{v}",
+        "label": "The Eigenvalue Equation"
+      }
+    },
+    {
+      "beat_id": "core_definition_2",
+      "narration": "Here, v is the eigenvector — it's the direction that the transformation preserves. The matrix A can stretch it, shrink it, or flip it, but it stays on the same line.",
+      "visual": {
+        "type": "highlight",
+        "target": "\\vec{v}",
+        "color": "cyan"
+      }
+    },
+    {
+      "beat_id": "core_definition_3",
+      "narration": "And lambda is the eigenvalue — it's just the scaling factor that tells you how much that special vector gets stretched or compressed. If lambda is negative, the vector flips direction.",
+      "visual": {
+        "type": "highlight",
+        "target": "\\lambda",
+        "color": "orange"
+      }
+    },
+    {
+      "beat_id": "core_definition_4",
+      "narration": "Now here's one important rule: the eigenvector v cannot be the zero vector. Why? Because the zero vector trivially satisfies A times zero equals lambda times zero for any lambda — it tells us nothing useful.",
+      "visual": {
+        "type": "equation_transform",
+        "from_latex": "A\\vec{0} = \\lambda \\vec{0} = \\vec{0}",
+        "to_latex": "\\vec{v} \\neq \\vec{0}"
+      }
+    },
+    {
+      "beat_id": "core_definition_5",
+      "narration": "Let's recap: an eigenvector is a non-zero vector whose direction is preserved by the transformation, and the eigenvalue is the scalar that tells us how it scales along that direction.",
+      "visual": {
+        "type": "summary_card",
+        "key_points": [
+          "Eigenvector: non-zero vector whose direction is preserved by A",
+          "Eigenvalue: the scaling factor λ applied to that vector",
+          "Core equation: Av = λv",
+          "Zero vector is always excluded"
+        ]
+      }
+    },
+    {
+      "beat_id": "finding_eigenvalues_1",
+      "narration": "So we know that eigenvectors satisfy A v equals lambda v. But how do we actually find lambda? Let's rearrange this equation into something we can solve.",
+      "visual": {
+        "type": "equation_reveal",
+        "latex": "A\\mathbf{v} = \\lambda \\mathbf{v}",
+        "label": "Starting point"
+      }
+    },
+    {
+      "beat_id": "finding_eigenvalues_2",
+      "narration": "Move everything to one side: A v minus lambda v equals zero. Factor out v, and we get A minus lambda I, times v, equals the zero vector.",
+      "visual": {
+        "type": "equation_transform",
+        "from_latex": "A\\mathbf{v} - \\lambda \\mathbf{v} = \\mathbf{0}",
+        "to_latex": "(A - \\lambda I)\\mathbf{v} = \\mathbf{0}"
+      }
+    },
+    {
+      "beat_id": "finding_eigenvalues_3",
+      "narration": "Now here's the key insight. We need a nonzero v that solves this equation. That's only possible if the matrix A minus lambda I is singular — meaning its determinant must be zero.",
+      "visual": {
+        "type": "theorem_card",
+        "theorem_name": "Determinant Condition",
+        "statement_latex": "\\det(A - \\lambda I) = 0"
+      }
+    },
+    {
+      "beat_id": "finding_eigenvalues_4",
+      "narration": "When you expand that determinant, you get a polynomial in lambda — called the characteristic polynomial. Its roots are exactly the eigenvalues we're looking for.",
+      "visual": {
+        "type": "equation_reveal",
+        "latex": "p(\\lambda) = \\det(A - \\lambda I) = 0",
+        "label": "Characteristic Polynomial"
+      }
+    },
+    {
+      "beat_id": "finding_eigenvalues_5",
+      "narration": "Let's recap: rearrange A v equals lambda v, require a nonzero solution, and that forces the determinant to vanish — giving us a polynomial whose roots are the eigenvalues.",
+      "visual": {
+        "type": "summary_card",
+        "key_points": [
+          "Rearrange: (A - λI)v = 0",
+          "Nonzero v exists only if det(A - λI) = 0",
+          "Expanding the determinant gives the characteristic polynomial",
+          "Roots of the polynomial = eigenvalues"
+        ]
+      }
+    },
+    {
+      "beat_id": "worked_example_1",
+      "narration": "Let's get our hands dirty with a concrete example. Take this two-by-two matrix A, with entries 2, 1, 1, 2.",
+      "visual": {
+        "type": "matrix_display",
+        "matrix_values": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "highlight_elements": []
+      }
+    },
+    {
+      "beat_id": "worked_example_2",
+      "narration": "We set up the characteristic equation: the determinant of A minus lambda I equals zero. That gives us this expression.",
+      "visual": {
+        "type": "equation_reveal",
+        "latex": "\\det\\begin{pmatrix} 2 - \\lambda & 1 \\\\ 1 & 2 - \\lambda \\end{pmatrix} = (2 - \\lambda)^2 - 1 = 0",
+        "label": "Characteristic Equation"
+      }
+    },
+    {
+      "beat_id": "worked_example_3",
+      "narration": "Expanding and simplifying, we get lambda squared minus four lambda plus three equals zero, which factors beautifully into lambda minus one times lambda minus three.",
+      "visual": {
+        "type": "equation_transform",
+        "from_latex": "\\lambda^2 - 4\\lambda + 3 = 0",
+        "to_latex": "(\\lambda - 1)(\\lambda - 3) = 0 \\quad \\Rightarrow \\quad \\lambda_1 = 1, \\; \\lambda_2 = 3"
+      }
+    },
+    {
+      "beat_id": "worked_example_4",
+      "narration": "Now for the eigenvectors. Plugging lambda equals 3 into A minus lambda I and solving the null space, both rows tell us the same thing: x one equals x two. So the eigenvector points along the direction one, one.",
+      "visual": {
+        "type": "step_reveal",
+        "latex": "\\lambda = 3: \\quad \\begin{pmatrix} -1 & 1 \\\\ 1 & -1 \\end{pmatrix} \\mathbf{v} = \\mathbf{0} \\quad \\Rightarrow \\quad \\mathbf{v}_1 = \\begin{pmatrix} 1 \\\\ 1 \\end{pmatrix}",
+        "step_number": 1
+      }
+    },
+    {
+      "beat_id": "worked_example_5",
+      "narration": "For lambda equals one, the null space gives us x one equals negative x two, so the eigenvector is one, negative one. These two eigenvectors are perpendicular — and each stays perfectly on its own line when A acts on it.",
+      "visual": {
+        "type": "vector_show",
+        "vectors": [
+          {
+            "coords": [
+              1,
+              1
+            ],
+            "label": "v₁ (λ=3)",
+            "color": "red"
+          },
+          {
+            "coords": [
+              1,
+              -1
+            ],
+            "label": "v₂ (λ=1)",
+            "color": "blue"
+          }
+        ]
+      }
+    },
+    {
+      "beat_id": "geometric_insight_1",
+      "narration": "Now that we can compute eigenvalues, let's actually see what they mean. Imagine a transformation that stretches space — the eigenvectors are the directions that refuse to rotate, they just stay on their own line.",
+      "visual": {
+        "type": "vector_transform",
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            0,
+            3
+          ]
+        ],
+        "vectors": [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0.5,
+            0.7
+          ]
+        ]
+      }
+    },
+    {
+      "beat_id": "geometric_insight_2",
+      "narration": "When an eigenvalue is positive, the eigenvector stretches forward along its axis. But when it's negative, the vector flips direction — it points the opposite way while staying on the same line.",
+      "visual": {
+        "type": "vector_show",
+        "vectors": [
+          {
+            "coords": [
+              2,
+              1
+            ],
+            "label": "\\lambda = 2 \\text{ (stretch)}",
+            "color": "green"
+          },
+          {
+            "coords": [
+              -1.5,
+              0.75
+            ],
+            "label": "\\lambda = -1.5 \\text{ (flip + stretch)}",
+            "color": "red"
+          }
+        ]
+      }
+    },
+    {
+      "beat_id": "geometric_insight_3",
+      "narration": "The magnitude of the eigenvalue tells you the stretch factor. An eigenvalue of three triples the length, an eigenvalue of one half shrinks it, and an eigenvalue of exactly one leaves the vector completely unchanged.",
+      "visual": {
+        "type": "graph_plot",
+        "functions": [
+          {
+            "expr": "3*x",
+            "label": "|\\lambda| = 3",
+            "color": "blue"
+          },
+          {
+            "expr": "0.5*x",
+            "label": "|\\lambda| = 0.5",
+            "color": "orange"
+          },
+          {
+            "expr": "x",
+            "label": "|\\lambda| = 1",
+            "color": "gray"
+          }
+        ],
+        "x_range": [
+          0,
+          2
+        ],
+        "y_range": [
+          0,
+          6
+        ]
+      }
+    },
+    {
+      "beat_id": "geometric_insight_4",
+      "narration": "Here's a tricky case — a shear transformation. It slides space sideways, and both eigenvalues equal one. There's only one independent eigenvector direction, along the horizontal axis. Everything else gets dragged off its line.",
+      "visual": {
+        "type": "vector_transform",
+        "matrix": [
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "vectors": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "beat_id": "geometric_insight_5",
+      "narration": "And what about complex eigenvalues? They mean no real vector stays on its line — the transformation is a pure rotation. No direction survives unchanged, which is why the eigenvalues leave the real number line entirely.",
+      "visual": {
+        "type": "matrix_display",
+        "matrix_values": [
+          [
+            0,
+            -1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "highlight_elements": [
+          {
+            "row": 0,
+            "col": 0,
+            "label": "\\lambda = i, -i \\text{ (rotation, no real eigenvectors)}"
+          }
+        ]
+      }
+    },
+    {
+      "beat_id": "why_it_matters_1",
+      "narration": "So eigenvalues are a neat math trick — but why should you actually care? Because they quietly power some of the most important algorithms in the modern world.",
+      "visual": {
+        "type": "title_card",
+        "title": "Why Eigenvalues Are Everywhere",
+        "subtitle": "From search engines to quantum physics"
+      }
+    },
+    {
+      "beat_id": "why_it_matters_2",
+      "narration": "Google's PageRank algorithm treats the entire internet as a giant matrix, and the ranking of every webpage is determined by the dominant eigenvector of that matrix. In machine learning, principal component analysis finds the eigenvectors of your data's covariance matrix to reveal the directions of greatest variance.",
+      "visual": {
+        "type": "matrix_display",
+        "matrix_values": [
+          [
+            "0",
+            "\\frac{1}{2}",
+            "1",
+            "0"
+          ],
+          [
+            "\\frac{1}{3}",
+            "0",
+            "0",
+            "\\frac{1}{2}"
+          ],
+          [
+            "\\frac{1}{3}",
+            "\\frac{1}{2}",
+            "0",
+            "\\frac{1}{2}"
+          ],
+          [
+            "\\frac{1}{3}",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "highlight_elements": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "beat_id": "why_it_matters_3",
+      "narration": "And in quantum mechanics, every measurable quantity — energy, momentum, spin — corresponds to the eigenvalues of an operator. When you measure a quantum system, you're literally finding its eigenvalues.",
+      "visual": {
+        "type": "equation_reveal",
+        "latex": "\\hat{H} \\, |\\psi\\rangle = E \\, |\\psi\\rangle",
+        "label": "Schrödinger's Eigenvalue Equation"
+      }
+    },
+    {
+      "beat_id": "why_it_matters_4",
+      "narration": "So remember: eigenvalues and eigenvectors are about finding the special directions that survive a transformation — the directions that matter. And once you learn to see them, you'll find them absolutely everywhere.",
+      "visual": {
+        "type": "summary_card",
+        "key_points": [
+          "Eigenvectors are the directions a transformation preserves",
+          "Eigenvalues tell you how much those directions stretch or flip",
+          "They power PageRank, PCA, quantum mechanics, and more",
+          "Find the directions that matter — that's the whole game"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "title": "Eigenvalues and Eigenvectors",
+  "total_duration_mins": 5,
+  "chapters": [
+    {
+      "id": "hook",
+      "title": "The Mystery of Special Vectors",
+      "concepts": ["visual motivation", "transformation intuition"],
+      "n_beats": 2
+    },
+    {
+      "id": "definition",
+      "title": "Defining Eigenvalues",
+      "concepts": ["Av = lambda v", "characteristic equation"],
+      "n_beats": 3
+    },
+    {
+      "id": "example",
+      "title": "A Worked Example",
+      "concepts": ["2x2 matrix", "det(A - lambda I) = 0", "solving for lambda"],
+      "n_beats": 3
+    },
+    {
+      "id": "summary",
+      "title": "Key Takeaways",
+      "concepts": ["eigenvalue meaning", "applications"],
+      "n_beats": 2
+    }
+  ]
+}

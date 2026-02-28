@@ -1,0 +1,29 @@
+[
+  {
+    "beat_id": "definition_1",
+    "narration": "A non-zero vector v is called an eigenvector of A if multiplying A by v just scales v.",
+    "visual": {
+      "type": "equation_reveal",
+      "latex": "A\\vec{v} = \\lambda \\vec{v}",
+      "label": "Eigenvalue equation"
+    }
+  },
+  {
+    "beat_id": "definition_2",
+    "narration": "The scalar lambda is what we call the eigenvalue — it tells us how much v is stretched.",
+    "visual": {
+      "type": "highlight",
+      "target": "\\lambda",
+      "color": "YELLOW"
+    }
+  },
+  {
+    "beat_id": "definition_3",
+    "narration": "Rearranging gives us the characteristic equation, which we use to find lambda.",
+    "visual": {
+      "type": "equation_transform",
+      "from_latex": "A\\vec{v} = \\lambda \\vec{v}",
+      "to_latex": "\\det(A - \\lambda I) = 0"
+    }
+  }
+]
