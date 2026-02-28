@@ -1,0 +1,8 @@
+[build]
+dockerfile = "Dockerfile"
+
+[deploy]
+healthcheckPath    = "/health"
+healthcheckTimeout = 300          # Manim + LaTeX cold-start can be slow
+restartPolicyType  = "on_failure"
+restartPolicyMaxRetries = 3

@@ -1,0 +1,26 @@
+# Git
+.git/
+.gitignore
+
+# Secrets — never bake into image
+.env
+
+# Claude Code project files
+.claude/
+
+# Generated output (large binaries — mounted as volume at runtime)
+output/
+media/
+
+# Python bytecode
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Test cache
+.pytest_cache/
+
+# Scratch files
+render_log*.txt
+morecontext.md

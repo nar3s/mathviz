@@ -120,6 +120,15 @@ async def get_status(job_id: str):
     async with _jobs_lock:
         job = _jobs.get(job_id)
     if not job:
+        # In-memory store is wiped on container restart.
+        # If the video file exists on the persistent volume, reconstruct status.
+        final_path = settings.final_dir / f"{job_id}.mp4"
+        if final_path.exists():
+            return {
+                "job_id":    job_id,
+                "status":    "completed",
+                "video_url": f"/output/{job_id}.mp4",
+            }
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
     return job
 
