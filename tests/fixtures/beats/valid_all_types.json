@@ -1,0 +1,16 @@
+[
+  {"beat_id": "t1",  "narration": "Title beat.",          "visual": {"type": "title_card",         "title": "Test Title", "subtitle": "Sub"}},
+  {"beat_id": "t2",  "narration": "Equation reveal.",     "visual": {"type": "equation_reveal",    "latex": "x^2 + y^2 = r^2", "label": "Circle"}},
+  {"beat_id": "t3",  "narration": "Transform.",           "visual": {"type": "equation_transform", "from_latex": "x^2", "to_latex": "2x"}},
+  {"beat_id": "t4",  "narration": "Highlight lambda.",    "visual": {"type": "highlight",          "target": "\\lambda", "color": "YELLOW"}},
+  {"beat_id": "t5",  "narration": "Step one.",            "visual": {"type": "step_reveal",        "latex": "f(x)=x^2", "step_number": 1, "label": "Step 1"}},
+  {"beat_id": "t6",  "narration": "Graph plot.",          "visual": {"type": "graph_plot",         "functions": [{"expr": "x**2", "color": "BLUE"}], "x_range": [-3, 3], "y_range": [-1, 9]}},
+  {"beat_id": "t7",  "narration": "Graph animate.",       "visual": {"type": "graph_animate",      "function_expr": "a*x**2", "parameter": "a", "range": [0.5, 2.0]}},
+  {"beat_id": "t8",  "narration": "Vector show.",         "visual": {"type": "vector_show",        "vectors": [{"coords": [1, 2], "color": "BLUE", "label": "v"}]}},
+  {"beat_id": "t9",  "narration": "Vector transform.",    "visual": {"type": "vector_transform",   "matrix": [[2, 0], [0, 2]], "vectors": [{"coords": [1, 0], "color": "BLUE"}]}},
+  {"beat_id": "t10", "narration": "Matrix display.",      "visual": {"type": "matrix_display",     "matrix_values": [[1, 2], [3, 4]]}},
+  {"beat_id": "t11", "narration": "Summary card.",        "visual": {"type": "summary_card",       "key_points": ["Point one.", "Point two.", "Point three."]}},
+  {"beat_id": "t12", "narration": "Theorem card.",        "visual": {"type": "theorem_card",       "theorem_name": "Pythagorean Theorem", "statement_latex": "a^2 + b^2 = c^2"}},
+  {"beat_id": "t13", "narration": "Text card.",           "visual": {"type": "text_card",          "text": "This is plain text."}},
+  {"beat_id": "t14", "narration": "Pause beat.",          "visual": {"type": "pause"}}
+]

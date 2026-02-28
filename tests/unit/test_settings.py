@@ -39,9 +39,9 @@ class TestSettingsDefaults:
         s = Settings()
         assert s.default_theme == "dark"
 
-    def test_default_max_render_workers_is_four(self):
+    def test_default_max_render_workers_is_one(self):
         s = Settings()
-        assert s.max_render_workers == 4
+        assert s.max_render_workers == 1
 
     def test_max_render_workers_is_int(self):
         s = Settings()

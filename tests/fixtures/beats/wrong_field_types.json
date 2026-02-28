@@ -1,0 +1,9 @@
+[
+  {"beat_id": "w1", "narration": "x_range string.",     "visual": {"type": "graph_plot",    "functions": [{"expr": "x**2"}], "x_range": "-5 to 5",        "y_range": [-25, 25]}},
+  {"beat_id": "w2", "narration": "functions object.",   "visual": {"type": "graph_plot",    "functions": {"expr": "x**2"},   "x_range": [-3, 3],          "y_range": [-9, 9]}},
+  {"beat_id": "w3", "narration": "step_number string.", "visual": {"type": "step_reveal",   "latex": "x^2", "step_number": "1"}},
+  {"beat_id": "w4", "narration": "key_points string.",  "visual": {"type": "summary_card",  "key_points": "Only one point."}},
+  {"beat_id": "w5", "narration": "vectors of arrays.",  "visual": {"type": "vector_show",   "vectors": [[1, 2], [3, 4]]}},
+  {"beat_id": "w6", "narration": "flat matrix.",        "visual": {"type": "matrix_display","matrix_values": [1, 2, 3, 4]}},
+  {"beat_id": "w7", "narration": "color as rgb array.", "visual": {"type": "highlight",     "target": "x^2", "color": [255, 0, 0]}}
+]

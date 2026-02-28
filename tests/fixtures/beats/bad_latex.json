@@ -1,0 +1,10 @@
+[
+  {"beat_id": "l1", "narration": "Empty latex.",         "visual": {"type": "equation_reveal",    "latex": ""}},
+  {"beat_id": "l2", "narration": "Unmatched brace.",     "visual": {"type": "equation_reveal",    "latex": "\\frac{a}{b"}},
+  {"beat_id": "l3", "narration": "Single backslash.",    "visual": {"type": "equation_reveal",    "latex": "\\frac{a}{b}"}},
+  {"beat_id": "l4", "narration": "Unicode lambda.",      "visual": {"type": "equation_reveal",    "latex": "\u03bb + \u03bc = \u03bd"}},
+  {"beat_id": "l5", "narration": "Very long equation.",  "visual": {"type": "equation_reveal",    "latex": "\\frac{\\partial^2 u}{\\partial t^2} = c^2 \\frac{\\partial^2 u}{\\partial x^2} + \\frac{\\partial^2 u}{\\partial y^2} + \\frac{\\partial^2 u}{\\partial z^2} + \\alpha \\nabla^2 u + \\beta \\frac{\\partial u}{\\partial t} + \\gamma u"}},
+  {"beat_id": "l6", "narration": "The formula \\frac{a}{b} shows the ratio.", "visual": {"type": "text_card", "text": "Wave equation."}},
+  {"beat_id": "l7", "narration": "Usepackage.",          "visual": {"type": "equation_reveal",    "latex": "\\usepackage{tikz} x^2"}},
+  {"beat_id": "l8", "narration": "Dollar signs.",        "visual": {"type": "equation_reveal",    "latex": "For all $x > 0$"}}
+]

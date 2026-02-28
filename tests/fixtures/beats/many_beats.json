@@ -1,0 +1,178 @@
+[
+  {
+    "beat_id": "beat_1",
+    "narration": "This is beat number 1.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 1"
+    }
+  },
+  {
+    "beat_id": "beat_2",
+    "narration": "This is beat number 2.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 2"
+    }
+  },
+  {
+    "beat_id": "beat_3",
+    "narration": "This is beat number 3.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 3"
+    }
+  },
+  {
+    "beat_id": "beat_4",
+    "narration": "This is beat number 4.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 4"
+    }
+  },
+  {
+    "beat_id": "beat_5",
+    "narration": "This is beat number 5.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 5"
+    }
+  },
+  {
+    "beat_id": "beat_6",
+    "narration": "This is beat number 6.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 6"
+    }
+  },
+  {
+    "beat_id": "beat_7",
+    "narration": "This is beat number 7.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 7"
+    }
+  },
+  {
+    "beat_id": "beat_8",
+    "narration": "This is beat number 8.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 8"
+    }
+  },
+  {
+    "beat_id": "beat_9",
+    "narration": "This is beat number 9.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 9"
+    }
+  },
+  {
+    "beat_id": "beat_10",
+    "narration": "This is beat number 10.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 10"
+    }
+  },
+  {
+    "beat_id": "beat_11",
+    "narration": "This is beat number 11.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 11"
+    }
+  },
+  {
+    "beat_id": "beat_12",
+    "narration": "This is beat number 12.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 12"
+    }
+  },
+  {
+    "beat_id": "beat_13",
+    "narration": "This is beat number 13.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 13"
+    }
+  },
+  {
+    "beat_id": "beat_14",
+    "narration": "This is beat number 14.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 14"
+    }
+  },
+  {
+    "beat_id": "beat_15",
+    "narration": "This is beat number 15.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 15"
+    }
+  },
+  {
+    "beat_id": "beat_16",
+    "narration": "This is beat number 16.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 16"
+    }
+  },
+  {
+    "beat_id": "beat_17",
+    "narration": "This is beat number 17.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 17"
+    }
+  },
+  {
+    "beat_id": "beat_18",
+    "narration": "This is beat number 18.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 18"
+    }
+  },
+  {
+    "beat_id": "beat_19",
+    "narration": "This is beat number 19.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 19"
+    }
+  },
+  {
+    "beat_id": "beat_20",
+    "narration": "This is beat number 20.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 20"
+    }
+  },
+  {
+    "beat_id": "beat_21",
+    "narration": "This is beat number 21.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 21"
+    }
+  },
+  {
+    "beat_id": "beat_22",
+    "narration": "This is beat number 22.",
+    "visual": {
+      "type": "text_card",
+      "text": "Slide 22"
+    }
+  }
+]

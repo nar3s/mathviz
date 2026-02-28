@@ -1,0 +1,12 @@
+{
+  "title": "The Fourier Transform",
+  "total_duration_mins": 5,
+  "chapters": [
+    {"id": "hook",       "title": "What is a Signal?",          "concepts": ["signals", "waves"],              "n_beats": 3},
+    {"id": "sine",       "title": "Sine Waves",                 "concepts": ["frequency", "amplitude"],        "n_beats": 3},
+    {"id": "decompose",  "title": "Decomposing Signals",        "concepts": ["superposition"],                 "n_beats": 3},
+    {"id": "transform",  "title": "The Transform Formula",      "concepts": ["integral", "e^ix"],              "n_beats": 3},
+    {"id": "squarewave", "title": "Square Wave Harmonics",      "concepts": ["harmonics", "series"],           "n_beats": 3},
+    {"id": "summary",    "title": "Applications",               "concepts": ["audio", "images", "spectrum"],   "n_beats": 2}
+  ]
+}

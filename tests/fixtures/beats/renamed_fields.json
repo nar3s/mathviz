@@ -1,0 +1,8 @@
+[
+  {"beat_id": "r1", "narration": "Formula not latex.",      "visual": {"type": "equation_reveal",    "formula": "x^2"}},
+  {"beat_id": "r2", "narration": "From/to renamed.",        "visual": {"type": "equation_transform", "from": "x^2", "to": "2x"}},
+  {"beat_id": "r3", "narration": "Plots not functions.",    "visual": {"type": "graph_plot",         "plots": [{"expr": "x**2"}], "x_range": [-3,3], "y_range": [-9,9]}},
+  {"beat_id": "r4", "narration": "Points not key_points.",  "visual": {"type": "summary_card",       "points": ["Point one."]}},
+  {"beat_id": "r5", "narration": "Values not matrix.",      "visual": {"type": "matrix_display",     "values": [[1,2],[3,4]]}},
+  {"beat_id": "r6", "narration": "Wrong narration key.",    "text": "This is the narration.", "visual": {"type": "text_card", "text": "Visual text."}}
+]

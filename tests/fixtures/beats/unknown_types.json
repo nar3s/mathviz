@@ -1,0 +1,9 @@
+[
+  {"beat_id": "u1", "narration": "Animation beat.", "visual": {"type": "animation",  "data": "x"}},
+  {"beat_id": "u2", "narration": "Diagram beat.",   "visual": {"type": "diagram",    "data": "x"}},
+  {"beat_id": "u3", "narration": "Chart beat.",     "visual": {"type": "chart",      "data": "x"}},
+  {"beat_id": "u4", "narration": "Misspelled.",     "visual": {"type": "equation_reval", "latex": "x^2"}},
+  {"beat_id": "u5", "narration": "Null type.",      "visual": {"type": null}},
+  {"beat_id": "u6", "narration": "Empty type.",     "visual": {"type": ""}},
+  {"beat_id": "u7", "narration": "No type field.",  "visual": {"latex": "x^2"}}
+]

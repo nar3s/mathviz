@@ -125,7 +125,7 @@ class TestGenerateOutline:
         llm = MagicMock()
         llm.complete = AsyncMock(return_value="not json {{{")
 
-        with pytest.raises(ValueError, match="invalid JSON"):
+        with pytest.raises(ValueError, match="Outline failed after"):
             await generate_outline("topic", "en", 5, client=llm)
 
     async def test_outline_missing_chapters_raises(self):

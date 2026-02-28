@@ -289,9 +289,10 @@ class TestRenderAllParallel:
             return expected[f"seg{class_name[-1]}"]
 
         with patch("renderer.render_engine.asyncio.to_thread", side_effect=fake_to_thread):
-            result = await render_all_parallel(tasks, quality="medium", max_workers=4)
+            result, errors = await render_all_parallel(tasks, quality="medium", max_workers=4)
 
         assert result == expected
+        assert errors == {}
 
     async def test_failed_segment_excluded_others_succeed(self, tmp_path):
         tasks = [
@@ -306,11 +307,12 @@ class TestRenderAllParallel:
             return tmp_path / f"{class_name}.mp4"
 
         with patch("renderer.render_engine.asyncio.to_thread", side_effect=fake_to_thread):
-            result = await render_all_parallel(tasks, quality="medium", max_workers=4)
+            result, errors = await render_all_parallel(tasks, quality="medium", max_workers=4)
 
         assert "seg1" in result
         assert "seg2" not in result     # failed — must be absent
         assert "seg3" in result
+        assert len(errors) == 1
 
     async def test_semaphore_limits_concurrency(self, tmp_path):
         max_workers = 2
@@ -335,8 +337,9 @@ class TestRenderAllParallel:
         assert max_concurrent[0] <= max_workers
 
     async def test_empty_task_list_returns_empty_dict(self):
-        result = await render_all_parallel([], quality="medium", max_workers=4)
+        result, errors = await render_all_parallel([], quality="medium", max_workers=4)
         assert result == {}
+        assert errors == {}
 
     async def test_all_fail_returns_empty_dict(self, tmp_path):
         tasks = [
@@ -347,6 +350,7 @@ class TestRenderAllParallel:
             raise RuntimeError("always fails")
 
         with patch("renderer.render_engine.asyncio.to_thread", side_effect=always_fail):
-            result = await render_all_parallel(tasks, quality="medium", max_workers=4)
+            result, errors = await render_all_parallel(tasks, quality="medium", max_workers=4)
 
         assert result == {}
+        assert len(errors) == 1

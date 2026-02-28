@@ -1,0 +1,9 @@
+{
+  "title": "Simple Arithmetic",
+  "total_duration_mins": 3,
+  "chapters": [
+    {"id": "intro", "title": "Introduction", "concepts": ["counting"], "n_beats": 2},
+    {"id": "add",   "title": "Addition",     "concepts": ["1+1=2"],    "n_beats": 2},
+    {"id": "sum",   "title": "Summary",      "concepts": ["review"],   "n_beats": 1}
+  ]
+}
