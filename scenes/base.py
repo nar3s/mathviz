@@ -107,6 +107,31 @@ _GLOBAL_COLOR_MAP: dict[str, object] = {
 }
 
 
+# ── Text normalizer ───────────────────────────────────────────────────────────
+# Replace ASCII approximations the LLM commonly outputs with proper Unicode
+# so Manim's Text() renders them correctly.
+_TEXT_REPLACEMENTS: list[tuple[str, str]] = [
+    ("=/",  "≠"),   # not-equal (LLM sometimes writes =/ instead of ≠)
+    ("!=",  "≠"),
+    ("/=",  "≠"),
+    ("~=",  "≈"),
+    (">=",  "≥"),
+    ("<=",  "≤"),
+    ("->",  "→"),
+    ("<-",  "←"),
+    ("=>",  "⇒"),
+    ("<=>", "⟺"),
+    ("...", "…"),
+]
+
+
+def normalize_text(text: str) -> str:
+    """Replace common ASCII approximations with proper Unicode characters."""
+    for ascii_form, unicode_char in _TEXT_REPLACEMENTS:
+        text = text.replace(ascii_form, unicode_char)
+    return text
+
+
 def resolve_color(name: str | object, fallback=YELLOW) -> object:
     """
     Resolve a color name to a Manim color object.
@@ -186,7 +211,7 @@ class BaseEngineeringScene(Scene):
         return tex
 
     def safe_text(self, text: str, font_size: int = 28, **kwargs) -> Text:
-        t = Text(text, font_size=font_size, **kwargs)
+        t = Text(normalize_text(text), font_size=font_size, **kwargs)
         self.fit(t)
         return t
 

@@ -8,7 +8,7 @@ Beat params:
 
 from __future__ import annotations
 
-from manim import ORIGIN, YELLOW, Write, Matrix
+from manim import ORIGIN, WHITE, YELLOW, Write, Matrix, Text
 
 from scenes.base import BaseEngineeringScene
 
@@ -21,9 +21,22 @@ class MatrixDisplayScene(BaseEngineeringScene):
         self.setup_theme()
         self.add_audio()
 
+        # Use Text mobject so string headers render as plain text (not MathTex
+        # math-italic). Compute h_buff dynamically from the longest cell string
+        # so long labels like "TestPositive" never overlap adjacent columns.
+        max_len = max(
+            len(str(cell))
+            for row in self.matrix_values
+            for cell in row
+        ) if self.matrix_values else 1
+        h_buff = max(1.4, 0.13 * max_len)
+
         mat = Matrix(
             self.matrix_values,
-            element_to_mobject_config={"font_size": 36},
+            element_to_mobject=Text,
+            element_to_mobject_config={"font_size": 28, "color": WHITE},
+            h_buff=h_buff,
+            v_buff=1.0,
         )
         self.fit(mat)
         mat.move_to(ORIGIN)
