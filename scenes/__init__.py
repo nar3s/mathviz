@@ -69,9 +69,39 @@ def build_beat_scene(beat: dict, style: dict) -> type[BaseEngineeringScene]:
     attrs["theme"]        = style.get("theme",        "dark")
     attrs["accent_color"] = style.get("accent_color", "#58C4DD")
 
-    beat_id  = beat.get("beat_id", "unknown")
-    safe_id  = re.sub(r"[^a-zA-Z0-9]", "_", beat_id)
-    cls_name = f"_BeatScene_{safe_id}"
+    beat_id   = beat.get("beat_id", "unknown")
+    safe_id   = re.sub(r"[^a-zA-Z0-9]", "_", beat_id)
+    cls_name  = f"_BeatScene_{safe_id}"
+    narration = beat.get("narration", "")
+
+    # Wrap construct() so a bad LLM param (broken LaTeX, wrong key, etc.) never
+    # produces a silent black video.  On any exception we fall back to showing
+    # the beat's narration text and padding to the full audio duration.
+    def _safe_construct(self):
+        import logging
+        try:
+            base.construct(self)
+        except Exception as exc:  # noqa: BLE001
+            logging.getLogger("mathviz.scene").error(
+                "Scene %s crashed (%s: %s) — showing text fallback",
+                cls_name, type(exc).__name__, exc,
+            )
+            try:
+                from manim import ORIGIN, WHITE, FadeIn
+                self.setup_theme()
+                self.add_audio()
+                mob = self.safe_text(
+                    narration[:200] if narration else beat_id,
+                    font_size=26,
+                    color=WHITE,
+                )
+                mob.move_to(ORIGIN)
+                self.play(FadeIn(mob), run_time=0.5)
+                self.pad_to_duration()
+            except Exception:
+                pass  # absolute last resort — at least Manim exits 0
+
+    attrs["construct"] = _safe_construct
 
     return type(cls_name, (base,), attrs)
 

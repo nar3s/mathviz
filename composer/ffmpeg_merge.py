@@ -84,13 +84,16 @@ class VideoComposer:
                 str(output_path),
             ]
         else:
-            # Video is equal or longer: just merge and trim to audio
+            # Video is equal or longer: merge and trim to audio duration.
+            # Re-encode video (ultrafast) so all segments share the same codec,
+            # FPS, and timebase — required for glitch-free -c copy concat.
             cmd = [
                 self.ffmpeg_path,
                 "-y",
                 "-i", str(video_path),
                 "-i", str(audio_path),
-                "-c:v", "copy",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                "-r", "30",
                 "-c:a", "aac", "-b:a", "192k",
                 "-map", "0:v:0", "-map", "1:a:0",
                 "-t", f"{audio_dur:.2f}",
@@ -155,6 +158,7 @@ class VideoComposer:
                 "-safe", "0",
                 "-i", concat_file,
                 "-c", "copy",
+                "-reset_timestamps", "1",   # fixes PTS discontinuities between segments
                 str(output_path),
             ]
 
