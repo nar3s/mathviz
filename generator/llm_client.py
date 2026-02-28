@@ -2,8 +2,9 @@
 Provider-agnostic LLM client abstraction.
 
 Supported providers:
-  - "claude"  → Anthropic Claude API  (pip install anthropic)
-  - "openai"  → OpenAI Chat API       (pip install openai)
+  - "claude"  → Anthropic Claude API          (pip install anthropic)
+  - "openai"  → OpenAI Chat API               (pip install openai)
+  - "gemini"  → Google Gemini API             (pip install google-genai)
 
 Usage:
     from generator.llm_client import get_llm_client
@@ -21,19 +22,21 @@ from abc import ABC, abstractmethod
 log = logging.getLogger(__name__)
 
 # ── Per-model pricing (USD per 1M tokens) ─────────────────────────────────────
-# Claude: https://www.anthropic.com/pricing
-# OpenAI: https://openai.com/pricing
 _PRICING: dict[str, tuple[float, float]] = {
     # model-id-prefix → (input $/1M, output $/1M)
-    "claude-opus-4-6":   (5.00,  25.00),
-    "claude-opus-4-5":   (15.00, 75.00),
-    "claude-sonnet-4-6": (3.00,  15.00),
-    "claude-sonnet-4-5": (3.00,  15.00),
-    "claude-haiku-4-5":  (1.00,   5.00),
-    "gpt-4o":            (2.50,  10.00),
-    "gpt-4o-mini":       (0.15,   0.60),
-    "gpt-4-turbo":       (10.00, 30.00),
-    "gpt-3.5-turbo":     (0.50,   1.50),
+    "claude-opus-4-6":       (5.00,  25.00),
+    "claude-opus-4-5":       (15.00, 75.00),
+    "claude-sonnet-4-6":     (3.00,  15.00),
+    "claude-sonnet-4-5":     (3.00,  15.00),
+    "claude-haiku-4-5":      (1.00,   5.00),
+    "gpt-4o":                (2.50,  10.00),
+    "gpt-4o-mini":           (0.15,   0.60),
+    "gpt-4-turbo":           (10.00, 30.00),
+    "gpt-3.5-turbo":         (0.50,   1.50),
+    "gemini-2.0-flash":      (0.10,   0.40),
+    "gemini-2.0-flash-lite": (0.075,  0.30),
+    "gemini-1.5-pro":        (1.25,   5.00),
+    "gemini-1.5-flash":      (0.075,  0.30),
 }
 
 
@@ -162,6 +165,56 @@ class OpenAIClient(LLMClient):
         return response.choices[0].message.content
 
 
+class GeminiClient(LLMClient):
+    """Google Gemini API client (async, via google-genai SDK)."""
+
+    def __init__(self, api_key: str, model: str) -> None:
+        try:
+            from google import genai as _genai
+        except ImportError as exc:
+            raise ImportError(
+                "google-genai package not found. Install with: pip install google-genai"
+            ) from exc
+        self._client = _genai.Client(api_key=api_key)
+        self._model = model
+
+    async def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int = 800,
+        temperature: float = 0.7,
+        label: str = "",
+    ) -> str:
+        import asyncio
+        from google.genai import types as _types
+
+        config = _types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            response_mime_type="application/json",
+        )
+
+        # google-genai SDK is sync — run in thread to keep async pipeline happy
+        response = await asyncio.to_thread(
+            self._client.models.generate_content,
+            model=self._model,
+            contents=user,
+            config=config,
+        )
+
+        usage = response.usage_metadata
+        _log_usage(
+            self._model,
+            usage.prompt_token_count or 0,
+            usage.candidates_token_count or 0,
+            label=label or "gemini",
+        )
+        return response.text
+
+
 def get_llm_client(settings) -> LLMClient:
     """
     Factory: read settings and return the appropriate LLMClient.
@@ -178,6 +231,8 @@ def get_llm_client(settings) -> LLMClient:
         return ClaudeClient(api_key=settings.llm_api_key, model=settings.llm_model)
     if provider == "openai":
         return OpenAIClient(api_key=settings.llm_api_key, model=settings.llm_model)
+    if provider == "gemini":
+        return GeminiClient(api_key=settings.llm_api_key, model=settings.llm_model)
     raise ValueError(
-        f"Unknown LLM_PROVIDER: '{provider}'. Supported values: 'claude', 'openai'."
+        f"Unknown LLM_PROVIDER: '{provider}'. Supported values: 'claude', 'openai', 'gemini'."
     )
