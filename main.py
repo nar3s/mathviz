@@ -288,7 +288,7 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
             for bid, file_path, class_name in scene_entries
         ]
 
-        rendered_map = await render_engine.render_all_parallel(
+        rendered_map, render_errors = await render_engine.render_all_parallel(
             tasks       = render_tasks,
             quality     = request.quality,
             max_workers = settings.max_render_workers,
@@ -297,8 +297,15 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
         render_failures = len(beats) - len(rendered_map)
         if render_failures:
             log.warning("[%s] %d/%d beats failed to render", job_id, render_failures, len(beats))
+            for beat_id, err in render_errors.items():
+                log.error("[%s] Render error [%s]: %s", job_id, beat_id, err[:300])
         if not rendered_map:
-            raise RuntimeError("All beats failed to render.")
+            raise RuntimeError(
+                f"All {len(beats)} beats failed to render. "
+                f"First error: {next(iter(render_errors.values()), 'unknown')[:300]}"
+            )
+
+        await _update_job(job_id, {"render_errors": render_errors})
 
         log.info("[%s] Rendered %d/%d beats", job_id, len(rendered_map), len(beats))
 

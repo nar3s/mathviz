@@ -88,6 +88,7 @@ def render_segment_subprocess(
         errors="replace",
         env=env,
         cwd=str(scene_file.parent.parent),  # project root
+        timeout=300,  # 5 min hard limit per beat
     )
 
     if result.returncode != 0:
@@ -138,11 +139,20 @@ async def render_all_parallel(
     results = await asyncio.gather(*coros, return_exceptions=True)
 
     rendered: dict[str, Path] = {}
+    errors: dict[str, str] = {}
     for item in results:
         if isinstance(item, Exception):
             log.error("Render failed: %s", item)
+            # Extract segment id from the exception message if possible
+            msg = str(item)
+            for seg_id, _, class_name, _ in tasks:
+                if class_name in msg:
+                    errors[seg_id] = msg[:500]
+                    break
+            else:
+                errors[f"unknown_{len(errors)}"] = msg[:500]
             continue
         seg_id, mp4_path = item
         rendered[seg_id] = mp4_path
 
-    return rendered
+    return rendered, errors

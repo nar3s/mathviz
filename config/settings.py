@@ -99,8 +99,8 @@ class Settings(BaseSettings):
 
     # ── FastAPI / Rendering ────────────────────────────────────────
     max_render_workers: int = Field(
-        default=4,
-        description="Max parallel Manim render workers per job",
+        default=1,
+        description="Max parallel Manim render workers per job (1 = serialised, safe for low-RAM hosts)",
     )
     api_host: str = Field(default="0.0.0.0", description="FastAPI host")
     api_port: int = Field(default=8000, description="FastAPI port")
