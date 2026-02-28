@@ -30,6 +30,7 @@ from generator.validator import validate_beats, validate_outline
 log = logging.getLogger(__name__)
 
 _MAX_CHAPTER_RETRIES = 3
+_MAX_OUTLINE_RETRIES = 3
 
 
 # ── JSON fence stripper ────────────────────────────────────────────────────────
@@ -86,33 +87,36 @@ async def generate_outline(
 
     log.info("Phase 1 — outline for: %.60s (%d min)", topic, duration_mins)
 
-    raw = await client.complete(
-        system=OUTLINE_SYSTEM_PROMPT,
-        user=prompt,
-        max_tokens=settings.outline_output_tokens,
-        temperature=0.6,
-        label="outline",
-    )
-    raw = _strip_fences(raw)
-    log.debug("Outline response (%d chars): %.400s", len(raw), raw)
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_OUTLINE_RETRIES):
+        try:
+            raw = await client.complete(
+                system=OUTLINE_SYSTEM_PROMPT,
+                user=prompt,
+                max_tokens=settings.outline_output_tokens,
+                temperature=0.6,
+                label="outline",
+            )
+            raw = _strip_fences(raw)
+            log.debug("Outline response (%d chars): %.400s", len(raw), raw)
 
-    try:
-        outline = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError(
-            f"Outline: invalid JSON from LLM: {exc}\nRaw:\n{raw[:500]}"
-        ) from exc
+            outline = json.loads(raw)
 
-    errors = validate_outline(outline)
-    if errors:
-        raise ValueError("Outline validation failed:\n" + "\n".join(errors))
+            errors = validate_outline(outline)
+            if errors:
+                raise ValueError("Outline validation failed:\n" + "\n".join(errors))
 
-    log.info(
-        "Outline: '%s', %d chapters",
-        outline.get("title"),
-        len(outline.get("chapters", [])),
-    )
-    return outline
+            log.info(
+                "Outline: '%s', %d chapters (attempt %d)",
+                outline.get("title"), len(outline.get("chapters", [])), attempt + 1,
+            )
+            return outline
+
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            log.warning("Outline attempt %d/%d failed: %s", attempt + 1, _MAX_OUTLINE_RETRIES, exc)
+
+    raise ValueError(f"Outline failed after {_MAX_OUTLINE_RETRIES} attempts: {last_exc}") from last_exc
 
 
 # ── Phase 2: Chapter beats ────────────────────────────────────────────────────

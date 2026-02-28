@@ -77,12 +77,12 @@ class Settings(BaseSettings):
         description="Max beats per chapter call (keeps output tokens bounded)",
     )
     max_chapter_output_tokens: int = Field(
-        default=1500,
-        description="Max output tokens for each chapter beats call",
+        default=2500,
+        description="Max output tokens for each chapter beats call (Gemini needs more than Claude)",
     )
     outline_output_tokens: int = Field(
-        default=600,
-        description="Max output tokens for the Phase-1 outline call",
+        default=1500,
+        description="Max output tokens for the Phase-1 outline call (Gemini needs more than Claude)",
     )
 
     # ── Cloudflare R2 Storage (optional) ──────────────────────────
