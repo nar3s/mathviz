@@ -15,7 +15,14 @@ from composer.ffmpeg_merge import VideoComposer
 
 log = logging.getLogger(__name__)
 
-_vc = VideoComposer()  # singleton; verifies FFmpeg is present on import
+_vc: VideoComposer | None = None  # lazy singleton — created on first use
+
+
+def _get_vc() -> VideoComposer:
+    global _vc
+    if _vc is None:
+        _vc = VideoComposer()
+    return _vc
 
 
 async def merge_segment(
@@ -36,7 +43,7 @@ async def merge_segment(
         return output_path
 
     return await asyncio.to_thread(
-        _vc.merge_segment,
+        _get_vc().merge_segment,
         video_path,
         audio_path,
         output_path,
@@ -58,7 +65,7 @@ async def concat_segments(
 
     log.info("Concatenating %d segments → %s", len(segment_paths), output_path)
     return await asyncio.to_thread(
-        _vc.concatenate,
+        _get_vc().concatenate,
         [str(p) for p in segment_paths],
         str(output_path),
         0,   # crossfade=0 → concat demuxer, no re-encode

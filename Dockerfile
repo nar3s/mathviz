@@ -8,6 +8,10 @@ USER root
 
 WORKDIR /app
 
+# ── System dependencies ───────────────────────────────────────────────────────
+# ffmpeg is not guaranteed to be in PATH on all manim base image tags.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+
 # ── Python dependencies ───────────────────────────────────────────────────────
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
