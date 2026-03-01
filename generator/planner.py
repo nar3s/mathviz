@@ -79,18 +79,17 @@ async def generate_outline(
         else f"\nIMPORTANT: Write all 'title' and 'concepts' values in {'Hindi' if language == 'hi' else language}."
     )
 
-    # Give the LLM explicit beat-count math so it doesn't default to 2/chapter.
-    # At ~15 s/beat: 5 min → 20 beats; 3 min → 12 beats; 10 min → 40 beats.
-    target_beats = max(12, round(duration_mins * 60 / 15))
-    n_chapters   = min(6, max(3, round(target_beats / settings.max_beats_per_chapter)))
+    # At ~15 s/beat: 5 min → 20 beats, 3 min → 12 beats, 10 min → 40 beats.
+    # n_beats per chapter is overridden in _generate_chapter_beats regardless,
+    # but telling the LLM the target chapter count keeps the outline coherent.
+    target_beats  = max(12, round(duration_mins * 60 / 15))
+    min_chapters  = min(6, max(3, round(target_beats / settings.max_beats_per_chapter)))
 
     prompt = (
         f"Create a chapter outline for a {duration_mins}-minute video about: {topic}"
         f"{lang_note}"
-        f"\n\nPacing target: ~{target_beats} beats total "
-        f"({duration_mins} min ÷ 15 s/beat). "
-        f"Use {n_chapters} chapters, each with {settings.max_beats_per_chapter} beats "
-        f"(set n_beats={settings.max_beats_per_chapter} for every chapter)."
+        f"\n\nPacing target: ~{target_beats} beats total ({duration_mins} min ÷ 15 s/beat). "
+        f"You MUST produce exactly {min_chapters} chapters."
         f"\n\n{OUTLINE_JSON_FORMAT}"
     )
 
@@ -115,9 +114,18 @@ async def generate_outline(
             if errors:
                 raise ValueError("Outline validation failed:\n" + "\n".join(errors))
 
+            # Enforce minimum chapter count — LLMs often generate fewer chapters
+            # than instructed, leaving total beats too low for the target duration.
+            got_chapters = len(outline.get("chapters", []))
+            if got_chapters < min_chapters:
+                raise ValueError(
+                    f"Outline has {got_chapters} chapters but need at least "
+                    f"{min_chapters} for a {duration_mins}-min video"
+                )
+
             log.info(
                 "Outline: '%s', %d chapters (attempt %d)",
-                outline.get("title"), len(outline.get("chapters", [])), attempt + 1,
+                outline.get("title"), got_chapters, attempt + 1,
             )
             return outline
 
@@ -144,7 +152,10 @@ async def _generate_chapter_beats(
     """
     cid     = chapter.get("id",    "chapter")
     ctitle  = chapter.get("title", "Chapter")
-    n_beats = min(int(chapter.get("n_beats", 3)), settings.max_beats_per_chapter)
+    # Always use max_beats_per_chapter — the LLM's n_beats suggestion is
+    # unreliable (consistently too low). Duration targets require every
+    # chapter to contribute its full quota.
+    n_beats  = settings.max_beats_per_chapter
     concepts = ", ".join(chapter.get("concepts", []))
 
     chapters = outline.get("chapters", [])

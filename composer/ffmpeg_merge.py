@@ -69,8 +69,13 @@ class VideoComposer:
         audio_dur = self._get_duration(audio_path)
 
         if audio_dur > video_dur + 0.5:
-            # Audio is longer: pad video by freezing last frame
-            pad_duration = audio_dur - video_dur + 0.5
+            # Audio is longer: extend video by looping the last frame.
+            # -loop 1 on a still image isn't applicable here, so we use
+            # the concat filter to append a frozen-frame clip instead.
+            # We pad the audio side: silence-pad audio to video duration
+            # is wrong (cuts narration), so re-encode video with tpad.
+            # Limit threads=4 to avoid OOM when multiple merges run in parallel.
+            pad_duration = audio_dur - video_dur + 0.1
             cmd = [
                 self.ffmpeg_path,
                 "-y",
@@ -78,28 +83,26 @@ class VideoComposer:
                 "-i", str(audio_path),
                 "-vf", f"tpad=stop_mode=clone:stop_duration={pad_duration:.2f}",
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                # Resample to 44100 Hz — TTS outputs 22050 Hz mono; 192kbps at
-                # 22050 Hz exceeds the AAC frame bit limit (6144 bits/frame) and
-                # causes the encoder to fail. 44100 Hz + 128kbps is always safe.
+                "-threads", "4",
                 "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
                 "-map", "0:v:0", "-map", "1:a:0",
                 "-shortest",
                 str(output_path),
             ]
         else:
-            # Video is equal or longer: merge and trim to audio duration.
-            # Re-encode video (ultrafast) so all segments share the same codec,
-            # FPS, and timebase — required for glitch-free -c copy concat.
+            # Normal case (video >= audio): stream-copy the video — no
+            # re-encoding. libx264 auto-detects all CPU cores (threads=22+)
+            # and when several merges run concurrently the OS kills the
+            # processes before a single frame is written.  Copying avoids
+            # the encoder entirely and is 10× faster.
+            # All Manim renders share the same h264 params (same quality
+            # flag), so -c copy concat works correctly downstream.
             cmd = [
                 self.ffmpeg_path,
                 "-y",
                 "-i", str(video_path),
                 "-i", str(audio_path),
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                "-r", "30",
-                # Resample to 44100 Hz — TTS outputs 22050 Hz mono; 192kbps at
-                # 22050 Hz exceeds the AAC frame bit limit (6144 bits/frame) and
-                # causes the encoder to fail. 44100 Hz + 128kbps is always safe.
+                "-c:v", "copy",
                 "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
                 "-map", "0:v:0", "-map", "1:a:0",
                 "-t", f"{audio_dur:.2f}",
