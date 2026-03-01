@@ -21,20 +21,28 @@ class MatrixDisplayScene(BaseEngineeringScene):
         self.setup_theme()
         self.add_audio()
 
-        # Use Text mobject so string headers render as plain text (not MathTex
-        # math-italic). Compute h_buff dynamically from the longest cell string
-        # so long labels like "TestPositive" never overlap adjacent columns.
-        max_len = max(
-            len(str(cell))
+        # Truncate cells so long strings like "1 (True Positive)" don't
+        # bleed into adjacent cells. The matrix_display type is designed for
+        # numerical matrices; text-heavy cells should use text_card instead.
+        _MAX_CELL = 12
+        display_values = [
+            [str(c)[:_MAX_CELL] for c in row]
             for row in self.matrix_values
-            for cell in row
-        ) if self.matrix_values else 1
-        h_buff = max(1.4, 0.13 * max_len)
+        ]
+
+        n_cols = len(display_values[0]) if display_values else 1
+        max_len = max(
+            len(cell) for row in display_values for cell in row
+        ) if display_values else 1
+
+        # Scale font size down for many columns or long cells
+        font_size = max(16, min(28, int(200 / (n_cols * max(max_len, 4)))))
+        h_buff = max(1.6, 0.18 * max_len)
 
         mat = Matrix(
-            self.matrix_values,
+            display_values,
             element_to_mobject=Text,
-            element_to_mobject_config={"font_size": 28, "color": WHITE},
+            element_to_mobject_config={"font_size": font_size, "color": WHITE},
             h_buff=h_buff,
             v_buff=1.0,
         )
