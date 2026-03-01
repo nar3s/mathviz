@@ -245,6 +245,29 @@ async def _generate_chapter_beats(
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
+_SEPARATOR_NARRATION = {
+    "en": "Let us now move to the next part: {title}. Take a moment to reflect on what we just covered before we continue.",
+    "hi": "अब हम अगले भाग पर जाते हैं: {title}। आगे बढ़ने से पहले एक पल रुकें और सोचें।",
+}
+
+_CLOSING_NARRATION = {
+    "en": (
+        "And that is our complete journey through {video_title}. "
+        "We started by understanding why this matters, then built the formal "
+        "definition, walked through the mechanics step by step, worked a "
+        "concrete example with real numbers, and finally uncovered the deeper "
+        "geometric intuition behind it all. Keep exploring — the best is yet to come."
+    ),
+    "hi": (
+        "और इस तरह हमारी {video_title} की पूरी यात्रा समाप्त होती है। "
+        "हमने समझा कि यह क्यों मायने रखता है, फिर औपचारिक परिभाषा बनाई, "
+        "चरण दर चरण यांत्रिकी को समझा, वास्तविक संख्याओं के साथ एक उदाहरण हल किया, "
+        "और अंत में इसके पीछे की गहरी ज्यामितीय अंतर्दृष्टि को उजागर किया। "
+        "खोजते रहें — सबसे अच्छा अभी आना बाकी है।"
+    ),
+}
+
+
 async def generate_scene_plan(
     topic: str,
     language: str = "en",
@@ -283,12 +306,10 @@ async def generate_scene_plan(
     for i, (chapter, chapter_beats) in enumerate(zip(chapters, chapter_beats_lists)):
         if i > 0:
             # Separator: brief narration + chapter title card
+            sep_template = _SEPARATOR_NARRATION.get(language, _SEPARATOR_NARRATION["en"])
             beats.append({
                 "beat_id": f"ch{i + 1}_intro",
-                "narration": (
-                    f"Let us now move to the next part: {chapter['title']}. "
-                    f"Take a moment to reflect on what we just covered before we continue."
-                ),
+                "narration": sep_template.format(title=chapter["title"]),
                 "visual": {
                     "type": "title_card",
                     "title": chapter["title"],
@@ -300,15 +321,10 @@ async def generate_scene_plan(
     # ── Closing summary beat ──────────────────────────────────────────────────
     # Always end with a deliberate wind-down so the video never feels abrupt.
     chapter_titles = [ch.get("title", "") for ch in chapters]
+    closing_template = _CLOSING_NARRATION.get(language, _CLOSING_NARRATION["en"])
     beats.append({
         "beat_id": "closing_summary",
-        "narration": (
-            f"And that is our complete journey through {outline['title']}. "
-            f"We started by understanding why this matters, then built the formal "
-            f"definition, walked through the mechanics step by step, worked a "
-            f"concrete example with real numbers, and finally uncovered the deeper "
-            f"geometric intuition behind it all. Keep exploring — the best is yet to come."
-        ),
+        "narration": closing_template.format(video_title=outline["title"]),
         "visual": {
             "type": "summary_card",
             "key_points": chapter_titles,
