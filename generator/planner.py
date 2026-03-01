@@ -178,9 +178,12 @@ async def _generate_chapter_beats(
         else f"\nIMPORTANT: Write all narration in {'Hindi' if language == 'hi' else language}. Keep LaTeX in English."
     )
 
+    role = chapter.get("role", "what")  # why | what | how | example | insight
+
     prompt = (
         f"Generate exactly {n_beats} beats for the '{ctitle}' chapter "
         f"of a {outline.get('total_duration_mins', 5)}-minute video about '{outline.get('title', '')}'.\n"
+        f"Chapter role: {role.upper()} — follow the '{role}' beat arc from the system prompt.\n"
         f"This chapter covers: {concepts}.\n\n"
         f"{prev_note}{next_note}{lang_note}\n\n"
         f"Use beat_ids: '{cid}_1', '{cid}_2', ...\n\n"
