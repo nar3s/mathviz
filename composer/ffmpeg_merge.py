@@ -78,7 +78,10 @@ class VideoComposer:
                 "-i", str(audio_path),
                 "-vf", f"tpad=stop_mode=clone:stop_duration={pad_duration:.2f}",
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                "-c:a", "aac", "-b:a", "192k",
+                # Resample to 44100 Hz — TTS outputs 22050 Hz mono; 192kbps at
+                # 22050 Hz exceeds the AAC frame bit limit (6144 bits/frame) and
+                # causes the encoder to fail. 44100 Hz + 128kbps is always safe.
+                "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
                 "-map", "0:v:0", "-map", "1:a:0",
                 "-shortest",
                 str(output_path),
@@ -94,7 +97,10 @@ class VideoComposer:
                 "-i", str(audio_path),
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
                 "-r", "30",
-                "-c:a", "aac", "-b:a", "192k",
+                # Resample to 44100 Hz — TTS outputs 22050 Hz mono; 192kbps at
+                # 22050 Hz exceeds the AAC frame bit limit (6144 bits/frame) and
+                # causes the encoder to fail. 44100 Hz + 128kbps is always safe.
+                "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
                 "-map", "0:v:0", "-map", "1:a:0",
                 "-t", f"{audio_dur:.2f}",
                 str(output_path),

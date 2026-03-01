@@ -79,9 +79,18 @@ async def generate_outline(
         else f"\nIMPORTANT: Write all 'title' and 'concepts' values in {'Hindi' if language == 'hi' else language}."
     )
 
+    # Give the LLM explicit beat-count math so it doesn't default to 2/chapter.
+    # At ~15 s/beat: 5 min → 20 beats; 3 min → 12 beats; 10 min → 40 beats.
+    target_beats = max(12, round(duration_mins * 60 / 15))
+    n_chapters   = min(6, max(3, round(target_beats / settings.max_beats_per_chapter)))
+
     prompt = (
         f"Create a chapter outline for a {duration_mins}-minute video about: {topic}"
         f"{lang_note}"
+        f"\n\nPacing target: ~{target_beats} beats total "
+        f"({duration_mins} min ÷ 15 s/beat). "
+        f"Use {n_chapters} chapters, each with {settings.max_beats_per_chapter} beats "
+        f"(set n_beats={settings.max_beats_per_chapter} for every chapter)."
         f"\n\n{OUTLINE_JSON_FORMAT}"
     )
 
