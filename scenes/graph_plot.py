@@ -65,7 +65,7 @@ class GraphPlotScene(BaseEngineeringScene):
             x_length=8.0,
             y_length=5.5,
         )
-        self.play(Create(axes), run_time=0.8)
+        self.play(Create(axes), run_time=1.5)
 
         for fn in self.functions:
             expr  = str(fn.get("expr",  "x"))
@@ -79,11 +79,11 @@ class GraphPlotScene(BaseEngineeringScene):
                     x_range=[xr[0], xr[1]],
                     use_smoothing=True,
                 )
-                self.play(Create(graph), run_time=1.2)
+                self.play(Create(graph), run_time=2.0)
 
                 if label:
                     gl = axes.get_graph_label(graph, label, color=color, font_size=20)
-                    self.play(FadeIn(gl), run_time=0.4)
+                    self.play(FadeIn(gl), run_time=0.8)
             except Exception:  # noqa: BLE001
                 pass
 

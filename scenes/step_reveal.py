@@ -31,7 +31,7 @@ class StepRevealScene(BaseEngineeringScene):
         eq = self.safe_tex(str(self.latex), font_size=self.equation_font_size, color=WHITE)
         eq.move_to(ORIGIN)
 
-        self.play(FadeIn(step_label), run_time=0.4)
-        self.play(Write(eq), run_time=1.5)
+        self.play(FadeIn(step_label), run_time=0.8)
+        self.play(Write(eq), run_time=2.5)
 
         self.pad_to_duration()

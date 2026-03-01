@@ -49,7 +49,7 @@ class MatrixDisplayScene(BaseEngineeringScene):
         self.fit(mat)
         mat.move_to(ORIGIN)
 
-        self.play(Write(mat), run_time=1.5)
+        self.play(Write(mat), run_time=2.5)
 
         if self.highlight_elements:
             n_cols = len(self.matrix_values[0]) if self.matrix_values else 1
@@ -65,7 +65,7 @@ class MatrixDisplayScene(BaseEngineeringScene):
                     if 0 <= idx < len(entries):
                         self.play(
                             entries[idx].animate.set_color(YELLOW),
-                            run_time=0.4,
+                            run_time=0.8,
                         )
                 except (IndexError, KeyError, TypeError, ValueError):
                     pass

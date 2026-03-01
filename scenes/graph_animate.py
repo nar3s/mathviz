@@ -39,7 +39,7 @@ class GraphAnimateScene(BaseEngineeringScene):
         self.add_audio()
 
         axes = self.create_axes(x_range=[-4, 4, 1], y_range=[-2, 2, 1])
-        self.play(Create(axes), run_time=0.8)
+        self.play(Create(axes), run_time=1.5)
 
         param_name = str(self.parameter)
         expr       = str(self.function_expr)

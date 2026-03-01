@@ -35,7 +35,7 @@ class VectorShowScene(BaseEngineeringScene):
             y_range=[-3, 3, 1],
             background_line_style={"stroke_opacity": 0.3},
         )
-        self.play(Create(plane), run_time=0.8)
+        self.play(Create(plane), run_time=1.5)
 
         for v in self.vectors:
             coords = v.get("coords", [1, 0])
@@ -44,11 +44,11 @@ class VectorShowScene(BaseEngineeringScene):
 
             tip = np.array([float(coords[0]), float(coords[1]), 0.0])
             arrow = Arrow(ORIGIN, tip, color=color, buff=0, stroke_width=4)
-            self.play(GrowArrow(arrow), run_time=0.7)
+            self.play(GrowArrow(arrow), run_time=1.5)
 
             if label:
                 lbl = Text(label, color=color, font_size=24)
                 lbl.next_to(arrow.get_end(), UP * 0.3, buff=0.15)
-                self.play(FadeIn(lbl), run_time=0.3)
+                self.play(FadeIn(lbl), run_time=0.6)
 
         self.pad_to_duration()

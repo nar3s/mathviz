@@ -36,8 +36,8 @@ class SummaryCardScene(BaseEngineeringScene):
         self.fit(all_items)
         all_items.move_to(ORIGIN)
 
-        self.play(FadeIn(heading, shift=RIGHT * 0.2), run_time=0.6)
+        self.play(FadeIn(heading, shift=RIGHT * 0.2), run_time=1.0)
         for bullet in bullets:
-            self.play(FadeIn(bullet, shift=RIGHT * 0.3), run_time=0.4)
+            self.play(FadeIn(bullet, shift=RIGHT * 0.3), run_time=0.7)
 
         self.pad_to_duration()

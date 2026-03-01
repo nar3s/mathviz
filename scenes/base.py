@@ -226,9 +226,9 @@ class BaseEngineeringScene(Scene):
             group.add(sub)
         self.fit(group)
         group.move_to([0, 0, 0])
-        self.play(FadeIn(group, shift=UP * 0.5), run_time=1.0)
-        self.wait(max(0.3, duration - 2.0))
-        self.play(FadeOut(group, shift=UP * 0.5), run_time=1.0)
+        self.play(FadeIn(group, shift=UP * 0.5), run_time=1.5)
+        self.wait(max(1.0, duration - 3.0))
+        self.play(FadeOut(group, shift=UP * 0.5), run_time=1.5)
         return group
 
     # ── Equation display ─────────────────────────────────────────────
@@ -245,9 +245,9 @@ class BaseEngineeringScene(Scene):
         self.fit(group)
         group.move_to(position)
         if animate:
-            self.play(Write(equation), run_time=1.5)
+            self.play(Write(equation), run_time=2.5)
             if label:
-                self.play(FadeIn(label_text), run_time=0.5)
+                self.play(FadeIn(label_text), run_time=1.0)
         else:
             self.add(group)
         return group
@@ -255,7 +255,7 @@ class BaseEngineeringScene(Scene):
     def highlight_equation_part(self, equation: MathTex, indices: list[int], color=YELLOW) -> None:
         for idx in indices:
             if idx < len(equation):
-                self.play(equation[idx].animate.set_color(color), run_time=0.5)
+                self.play(equation[idx].animate.set_color(color), run_time=0.8)
 
     # ── Axes ─────────────────────────────────────────────────────────
 
