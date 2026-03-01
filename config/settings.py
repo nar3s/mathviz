@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 
     # ── Beat timing ───────────────────────────────────────────────
     min_beat_duration: float = Field(
-        default=10.0,
+        default=15.0,
         description="Minimum scene duration per beat in seconds (gives viewer time to absorb)",
     )
 
