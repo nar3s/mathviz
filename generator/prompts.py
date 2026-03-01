@@ -67,21 +67,23 @@ One beat = 2–3 sentences of narration + one visual action.
 The narration is read aloud by TTS (~20 seconds). The visual plays for that duration.
 They are atomic and perfectly synced by design.
 
-## Narration rules (CRITICAL — minimum 35 words per beat)
+## Narration rules (CRITICAL — minimum 50 words per beat)
 Every narration must have THREE layers:
   1. HOOK    — Start with a question, surprising observation, or "imagine this..."
-  2. EXPLAIN — State the idea clearly with a concrete numerical example
-  3. CONNECT — Explain why this matters or what it leads to next
+  2. EXPLAIN — State the idea clearly with a concrete numerical example with numbers
+  3. CONNECT — Explain why this matters, what it implies, or what we explore next
 
 BAD (too short, no depth):
   "The gradient points uphill."
 
-GOOD (35+ words, three layers):
-  "Here's the key insight: the gradient of a function always points in the
-  direction of steepest ascent. Imagine you're standing on a hill described by
-  f equals x squared plus y squared — at position x=2, y=3, the gradient
-  vector is 4, 6, pushing you further uphill. To minimise the function, we
-  do the opposite: we step in the negative gradient direction."
+GOOD (50+ words, three layers, conversational):
+  "Here is the key insight that makes gradient descent work: the gradient of any
+  smooth function always points in the direction of steepest ascent at that point.
+  Imagine standing on a hilly surface described by f of x comma y equals x squared
+  plus y squared. At position x equals 2, y equals 3, the gradient vector is 4
+  comma 6 — it pushes you further uphill, away from the minimum. So to find the
+  minimum, we simply walk in the exact opposite direction, the negative gradient,
+  and we are guaranteed to reduce the function value with every step."
 
 ## Beat arc within each chapter (follow this order)
 Adapt based on the chapter's ROLE:

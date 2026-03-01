@@ -273,12 +273,50 @@ async def generate_scene_plan(
         *[_generate_chapter_beats(ch, outline, language, client) for ch in chapters]
     )
 
-    beats: list[dict] = [
-        beat for chapter_beats in chapter_beats_lists for beat in chapter_beats
-    ]
+    # ── Assemble beats with chapter separators ────────────────────────────────
+    # Inject a title card between chapters (not before the first one — the LLM
+    # already opens with a hook). These are code-controlled, not LLM-generated,
+    # so they are always present and always give the viewer a moment to breathe.
+    beats: list[dict] = []
+    n_chapters = len(chapters)
+
+    for i, (chapter, chapter_beats) in enumerate(zip(chapters, chapter_beats_lists)):
+        if i > 0:
+            # Separator: brief narration + chapter title card
+            beats.append({
+                "beat_id": f"ch{i + 1}_intro",
+                "narration": (
+                    f"Let us now move to the next part: {chapter['title']}. "
+                    f"Take a moment to reflect on what we just covered before we continue."
+                ),
+                "visual": {
+                    "type": "title_card",
+                    "title": chapter["title"],
+                    "subtitle": f"Part {i + 1} of {n_chapters}",
+                },
+            })
+        beats.extend(chapter_beats)
+
+    # ── Closing summary beat ──────────────────────────────────────────────────
+    # Always end with a deliberate wind-down so the video never feels abrupt.
+    chapter_titles = [ch.get("title", "") for ch in chapters]
+    beats.append({
+        "beat_id": "closing_summary",
+        "narration": (
+            f"And that is our complete journey through {outline['title']}. "
+            f"We started by understanding why this matters, then built the formal "
+            f"definition, walked through the mechanics step by step, worked a "
+            f"concrete example with real numbers, and finally uncovered the deeper "
+            f"geometric intuition behind it all. Keep exploring — the best is yet to come."
+        ),
+        "visual": {
+            "type": "summary_card",
+            "key_points": chapter_titles,
+        },
+    })
 
     log.info(
-        "Plan complete: '%s', %d chapters, %d beats total",
-        outline["title"], len(chapters), len(beats),
+        "Plan complete: '%s', %d chapters, %d beats total (incl. %d separators + closing)",
+        outline["title"], n_chapters, len(beats), n_chapters - 1,
     )
     return {"title": outline["title"], "beats": beats}
