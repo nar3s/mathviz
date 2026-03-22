@@ -70,5 +70,4 @@ class MatrixDisplayScene(BaseEngineeringScene):
                 except (IndexError, KeyError, TypeError, ValueError):
                     pass
 
-        self.animate_idle(mat)
         self.pad_to_duration()

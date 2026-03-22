@@ -23,12 +23,11 @@ class EquationTransformScene(BaseEngineeringScene):
 
         eq1 = self.safe_tex(str(self.from_latex), color=WHITE)
         eq1.move_to(ORIGIN)
-        self.play(Write(eq1), run_time=0.8)
-        self.wait(0.3)
+        self.play(Write(eq1), run_time=1.2)
+        self.wait(0.5)
 
         eq2 = self.safe_tex(str(self.to_latex), color=WHITE)
         eq2.move_to(ORIGIN)
-        self.play(TransformMatchingTex(eq1, eq2), run_time=1.2)
+        self.play(TransformMatchingTex(eq1, eq2), run_time=1.5)
 
-        self.animate_idle(eq2)
         self.pad_to_duration()

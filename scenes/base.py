@@ -226,9 +226,9 @@ class BaseEngineeringScene(Scene):
             group.add(sub)
         self.fit(group)
         group.move_to([0, 0, 0])
-        self.play(FadeIn(group, shift=UP * 0.5), run_time=0.6)
-        self.wait(max(0.3, duration - 1.1))
-        self.play(FadeOut(group, shift=UP * 0.5), run_time=0.5)
+        self.play(FadeIn(group, shift=UP * 0.5), run_time=0.8)
+        self.wait(max(0.5, duration - 1.8))
+        self.play(FadeOut(group, shift=UP * 0.5), run_time=0.7)
         return group
 
     # ── Equation display ─────────────────────────────────────────────
@@ -245,9 +245,9 @@ class BaseEngineeringScene(Scene):
         self.fit(group)
         group.move_to(position)
         if animate:
-            self.play(Write(equation), run_time=1.0)
+            self.play(Write(equation), run_time=1.5)
             if label:
-                self.play(FadeIn(label_text), run_time=0.4)
+                self.play(FadeIn(label_text), run_time=0.6)
         else:
             self.add(group)
         return group
@@ -281,57 +281,6 @@ class BaseEngineeringScene(Scene):
             self.play(*[FadeOut(mob) for mob in self.mobjects], run_time=0.4)
         else:
             self.clear()
-
-    # ── Idle animation engine ─────────────────────────────────────────
-
-    def animate_idle(self, *mobjects: Mobject) -> None:
-        """Fill remaining time with subtle micro-animations on hero mobjects.
-
-        Cycles through pulse / indicate / shimmer effects (0.6-0.8s each)
-        until < 1.0s remains, then returns so pad_to_duration() handles residual.
-        """
-        import random
-        from manim import Indicate, there_and_back
-
-        targets = [m for m in mobjects if m is not None]
-        if not targets:
-            return
-
-        effect_idx = random.randint(0, 2)  # vary starting effect
-
-        while True:
-            try:
-                remaining = self.total_duration - self.renderer.time
-            except Exception:
-                break
-            if remaining < 1.0:
-                break
-
-            mob = targets[effect_idx % len(targets)]
-            choice = effect_idx % 3
-
-            try:
-                if choice == 0:
-                    # Gentle scale pulse
-                    self.play(
-                        mob.animate.scale(1.05),
-                        run_time=0.35,
-                        rate_func=there_and_back,
-                    )
-                elif choice == 1:
-                    # Indicate flash
-                    self.play(Indicate(mob, scale_factor=1.03), run_time=0.6)
-                else:
-                    # Opacity shimmer
-                    self.play(
-                        mob.animate.set_opacity(0.7),
-                        run_time=0.3,
-                        rate_func=there_and_back,
-                    )
-            except Exception:
-                break
-
-            effect_idx += 1
 
     # ── Audio sync ───────────────────────────────────────────────────
 

@@ -42,8 +42,7 @@ class TheoremCardScene(BaseEngineeringScene):
         self.fit(group)
         group.move_to(ORIGIN)
 
-        self.play(Write(title), run_time=0.6)
-        self.play(Create(box), Write(statement), run_time=1.0)
+        self.play(Write(title), run_time=1.0)
+        self.play(Create(box), Write(statement), run_time=1.5)
 
-        self.animate_idle(group)
         self.pad_to_duration()
