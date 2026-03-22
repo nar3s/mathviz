@@ -114,13 +114,13 @@ async def generate_outline(
             if errors:
                 raise ValueError("Outline validation failed:\n" + "\n".join(errors))
 
-            # Enforce minimum chapter count — LLMs often generate fewer chapters
-            # than instructed, leaving total beats too low for the target duration.
+            # Accept any outline with at least 3 chapters. We ask the LLM
+            # for `min_chapters` in the prompt, but LLMs often undershoot.
+            # Crashing on 5 vs 6 wastes all retries for no good reason.
             got_chapters = len(outline.get("chapters", []))
-            if got_chapters < min_chapters:
+            if got_chapters < 3:
                 raise ValueError(
-                    f"Outline has {got_chapters} chapters but need at least "
-                    f"{min_chapters} for a {duration_mins}-min video"
+                    f"Outline has {got_chapters} chapters but need at least 3"
                 )
 
             log.info(
