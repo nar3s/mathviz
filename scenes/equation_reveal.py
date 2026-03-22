@@ -20,10 +20,11 @@ class EquationRevealScene(BaseEngineeringScene):
     def construct(self) -> None:
         self.setup_theme()
         self.add_audio()
-        self.show_equation(
+        group = self.show_equation(
             str(self.latex),
             label=str(self.label) if self.label else None,
             position=UP * 0.3,
             animate=True,
         )
+        self.animate_idle(group)
         self.pad_to_duration()

@@ -22,6 +22,7 @@ class TextCardScene(BaseEngineeringScene):
         t = self.safe_text(str(self.text), font_size=32, color=WHITE)
         t.move_to(ORIGIN)
 
-        self.play(FadeIn(t, shift=UP * 0.3), run_time=1.5)
+        self.play(FadeIn(t, shift=UP * 0.3), run_time=0.5)
 
+        self.animate_idle(t)
         self.pad_to_duration()

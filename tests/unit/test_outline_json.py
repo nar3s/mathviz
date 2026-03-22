@@ -65,7 +65,7 @@ class TestOutlineJsonRobustness:
         llm = _mock_llm(fenced)
         result = await generate_outline("topic", "en", 5, client=llm)
         assert result["title"] == "Simple Arithmetic"
-        assert len(result["chapters"]) == 3
+        assert len(result["chapters"]) == 6
 
     async def test_1_1_2_bare_fence_stripped(self):
         """Bare ``` fence (no 'json' label) is also stripped."""

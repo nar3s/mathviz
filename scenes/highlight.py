@@ -37,7 +37,9 @@ class HighlightScene(BaseEngineeringScene):
         # Highlight box in the target color
         box = SurroundingRectangle(eq, color=resolved, buff=0.15, corner_radius=0.1)
 
-        self.play(Write(eq), run_time=1.8)
-        self.play(Create(box), eq.animate.set_color(resolved), run_time=1.5)
+        self.play(Write(eq), run_time=0.7)
+        self.play(Create(box), eq.animate.set_color(resolved), run_time=0.6)
 
+        from manim import VGroup
+        self.animate_idle(VGroup(eq, box))
         self.pad_to_duration()

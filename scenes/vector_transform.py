@@ -77,4 +77,5 @@ class VectorTransformScene(BaseEngineeringScene):
                 run_time=1.0,
             )
 
+        self.animate_idle(VGroup(*arrows))
         self.pad_to_duration()

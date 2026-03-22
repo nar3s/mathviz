@@ -1,9 +1,12 @@
 {
   "title": "Simple Arithmetic",
-  "total_duration_mins": 3,
+  "total_duration_mins": 5,
   "chapters": [
-    {"id": "intro", "title": "Introduction", "concepts": ["counting"], "n_beats": 2},
-    {"id": "add",   "title": "Addition",     "concepts": ["1+1=2"],    "n_beats": 2},
-    {"id": "sum",   "title": "Summary",      "concepts": ["review"],   "n_beats": 1}
+    {"id": "why_motivation",  "title": "Why Arithmetic Matters",  "role": "why",     "concepts": ["counting"],          "n_beats": 5},
+    {"id": "what_definition", "title": "What Is Addition",        "role": "what",    "concepts": ["addition basics"],   "n_beats": 5},
+    {"id": "how_algorithm",   "title": "How To Add Numbers",      "role": "how",     "concepts": ["carrying"],          "n_beats": 5},
+    {"id": "example_worked",  "title": "A Worked Example",        "role": "example", "concepts": ["1+1=2"],             "n_beats": 5},
+    {"id": "insight_patterns","title": "Patterns In Addition",    "role": "insight", "concepts": ["commutativity"],     "n_beats": 5},
+    {"id": "summary_review",  "title": "Summary",                 "role": "insight", "concepts": ["review"],            "n_beats": 5}
   ]
 }

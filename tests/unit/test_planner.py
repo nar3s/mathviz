@@ -21,18 +21,12 @@ VALID_OUTLINE = {
     "title": "Eigenvalues and Eigenvectors",
     "total_duration_mins": 5,
     "chapters": [
-        {
-            "id": "hook",
-            "title": "The Mystery Vector",
-            "concepts": ["motivation"],
-            "n_beats": 2,
-        },
-        {
-            "id": "definition",
-            "title": "The Definition",
-            "concepts": ["Av = lambda v"],
-            "n_beats": 3,
-        },
+        {"id": "hook",       "title": "The Mystery Vector",    "role": "why",     "concepts": ["motivation"],     "n_beats": 5},
+        {"id": "definition", "title": "The Definition",        "role": "what",    "concepts": ["Av = lambda v"],  "n_beats": 5},
+        {"id": "algorithm",  "title": "How To Find Them",      "role": "how",     "concepts": ["det(A-lI)=0"],    "n_beats": 5},
+        {"id": "example",    "title": "A 2x2 Example",         "role": "example", "concepts": ["computation"],    "n_beats": 5},
+        {"id": "geometry",   "title": "Geometric Intuition",   "role": "insight", "concepts": ["stretching"],     "n_beats": 5},
+        {"id": "summary",    "title": "Key Takeaways",         "role": "insight", "concepts": ["review"],         "n_beats": 5},
     ],
 }
 
@@ -119,7 +113,7 @@ class TestGenerateOutline:
         result = await generate_outline("Eigenvalues", "en", 5, client=llm)
 
         assert result["title"] == "Eigenvalues and Eigenvectors"
-        assert len(result["chapters"]) == 2
+        assert len(result["chapters"]) == 6
 
     async def test_invalid_json_raises_value_error(self):
         llm = MagicMock()
@@ -195,7 +189,7 @@ class TestGenerateScenePlan:
 
     async def test_returns_title_and_beats(self):
         # Outline call → ch1 call → ch2 call
-        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2)
+        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2)
 
         with patch("generator.planner.get_llm_client", return_value=llm):
             result = await generate_scene_plan("Eigenvalues", "en", 5)
@@ -205,16 +199,17 @@ class TestGenerateScenePlan:
         assert isinstance(result["beats"], list)
 
     async def test_beats_are_flat_list(self):
-        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2)
+        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2)
 
         with patch("generator.planner.get_llm_client", return_value=llm):
             result = await generate_scene_plan("Eigenvalues", "en", 5)
 
-        # ch1 has 2 beats + ch2 has 3 beats = 5 total
-        assert len(result["beats"]) == 5
+        # 6 chapters: ch1(2)+ch2(3)+ch3(2)+ch4(3)+ch5(2)+ch6(3) = 15 content
+        # + 5 separators + 1 closing = 21 total
+        assert len(result["beats"]) == 21
 
     async def test_all_beats_have_required_fields(self):
-        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2)
+        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2)
 
         with patch("generator.planner.get_llm_client", return_value=llm):
             result = await generate_scene_plan("Eigenvalues", "en", 5)
@@ -229,20 +224,24 @@ class TestGenerateScenePlan:
         # Outline OK, then all chapter calls fail
         llm = MagicMock()
         side_effects = [json.dumps(VALID_OUTLINE)]
-        side_effects += ["INVALID JSON {{{"] * (_MAX_RETRIES := 3) * 2  # 2 chapters × 3 retries
+        side_effects += ["INVALID JSON {{{"] * (_MAX_RETRIES := 3) * 6  # 6 chapters × 3 retries
         llm.complete = AsyncMock(side_effect=side_effects)
 
         with patch("generator.planner.get_llm_client", return_value=llm):
             result = await generate_scene_plan("topic", "en", 5)
 
-        # Should have fallback beats (one per chapter)
-        assert len(result["beats"]) >= 1
-        # Each fallback beat is a text_card
-        for beat in result["beats"]:
+        # Should have fallback beats (one per chapter) + separators + closing
+        assert len(result["beats"]) >= 6
+        # Fallback beats are text_card; separators are title_card; closing is summary_card
+        fallback_beats = [
+            b for b in result["beats"]
+            if not b["beat_id"].startswith("ch") and b["beat_id"] != "closing_summary"
+        ]
+        for beat in fallback_beats:
             assert beat["visual"]["type"] == "text_card"
 
     async def test_topic_passed_to_outline_prompt(self):
-        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2)
+        llm = _mock_llm_multi(VALID_OUTLINE, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2, VALID_BEATS_CH1, VALID_BEATS_CH2)
 
         with patch("generator.planner.get_llm_client", return_value=llm):
             await generate_scene_plan("Fourier transforms", "en", 5)

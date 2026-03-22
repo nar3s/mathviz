@@ -79,16 +79,16 @@ async def generate_outline(
         else f"\nIMPORTANT: Write all 'title' and 'concepts' values in {'Hindi' if language == 'hi' else language}."
     )
 
-    # At ~15 s/beat: 5 min → 20 beats, 3 min → 12 beats, 10 min → 40 beats.
+    # At ~10 s/beat: 5 min → 30 beats, 3 min → 18 beats, 10 min → 60 beats.
     # n_beats per chapter is overridden in _generate_chapter_beats regardless,
     # but telling the LLM the target chapter count keeps the outline coherent.
-    target_beats  = max(12, round(duration_mins * 60 / 15))
+    target_beats  = max(12, round(duration_mins * 60 / 10))
     min_chapters  = min(6, max(3, round(target_beats / settings.max_beats_per_chapter)))
 
     prompt = (
         f"Create a chapter outline for a {duration_mins}-minute video about: {topic}"
         f"{lang_note}"
-        f"\n\nPacing target: ~{target_beats} beats total ({duration_mins} min ÷ 15 s/beat). "
+        f"\n\nPacing target: ~{target_beats} beats total ({duration_mins} min ÷ 10 s/beat). "
         f"You MUST produce exactly {min_chapters} chapters."
         f"\n\n{OUTLINE_JSON_FORMAT}"
     )
@@ -246,24 +246,18 @@ async def _generate_chapter_beats(
 # ── Public entry point ────────────────────────────────────────────────────────
 
 _SEPARATOR_NARRATION = {
-    "en": "Let us now move to the next part: {title}. Take a moment to reflect on what we just covered before we continue.",
-    "hi": "अब हम अगले भाग पर जाते हैं: {title}। आगे बढ़ने से पहले एक पल रुकें और सोचें।",
+    "en": "Now let us move on: {title}.",
+    "hi": "अब अगला भाग: {title}।",
 }
 
 _CLOSING_NARRATION = {
     "en": (
-        "And that is our complete journey through {video_title}. "
-        "We started by understanding why this matters, then built the formal "
-        "definition, walked through the mechanics step by step, worked a "
-        "concrete example with real numbers, and finally uncovered the deeper "
-        "geometric intuition behind it all. Keep exploring — the best is yet to come."
+        "And that wraps up our journey through {video_title} — "
+        "from motivation to mechanics to real examples. Keep exploring!"
     ),
     "hi": (
-        "और इस तरह हमारी {video_title} की पूरी यात्रा समाप्त होती है। "
-        "हमने समझा कि यह क्यों मायने रखता है, फिर औपचारिक परिभाषा बनाई, "
-        "चरण दर चरण यांत्रिकी को समझा, वास्तविक संख्याओं के साथ एक उदाहरण हल किया, "
-        "और अंत में इसके पीछे की गहरी ज्यामितीय अंतर्दृष्टि को उजागर किया। "
-        "खोजते रहें — सबसे अच्छा अभी आना बाकी है।"
+        "और इस तरह {video_title} की हमारी यात्रा पूरी हुई — "
+        "प्रेरणा से लेकर उदाहरणों तक। खोजते रहें!"
     ),
 }
 
