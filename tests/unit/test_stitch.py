@@ -179,6 +179,26 @@ class TestVideoComposerSingleSegment:
 
 class TestFfmpegFailure:
 
+    def test_video_longer_than_audio_pads_silence_to_video_duration(self, tmp_path):
+        from composer.ffmpeg_merge import VideoComposer
+
+        video = tmp_path / "seg.mp4"
+        audio = tmp_path / "seg.wav"
+        output = tmp_path / "merged.mp4"
+        video.write_bytes(b"video")
+        audio.write_bytes(b"audio")
+
+        with patch.object(VideoComposer, "_verify_ffmpeg", return_value=None):
+            vc = VideoComposer()
+            with patch.object(vc, "_get_duration", side_effect=[8.0, 3.0]):
+                with patch("subprocess.run") as mock_run:
+                    mock_run.return_value = MagicMock(returncode=0, stderr="")
+                    vc.merge_segment(video, audio, output)
+
+        command = mock_run.call_args.args[0]
+        assert "apad" in command
+        assert command[command.index("-t") + 1] == "8.00"
+
     def test_7_7_merge_segment_ffmpeg_failure_raises_runtime_error(self, tmp_path):
         """
         VideoComposer.merge_segment raises RuntimeError when FFmpeg exits non-zero.

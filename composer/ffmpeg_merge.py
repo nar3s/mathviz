@@ -54,7 +54,8 @@ class VideoComposer:
 
         If the audio is longer than the video, the video is padded by
         freezing the last frame (using tpad filter). If video is longer
-        than audio, it is trimmed to audio duration.
+        than audio, the audio is padded with silence to preserve the planned
+        scene duration.
         """
         video_path = Path(video_path)
         audio_path = Path(audio_path)
@@ -90,7 +91,8 @@ class VideoComposer:
                 str(output_path),
             ]
         else:
-            # Normal case (video >= audio): stream-copy the video — no
+            # Normal case (video >= audio): stream-copy the video and pad the
+            # narration with silence to the planned scene duration — no
             # re-encoding. libx264 auto-detects all CPU cores (threads=22+)
             # and when several merges run concurrently the OS kills the
             # processes before a single frame is written.  Copying avoids
@@ -104,8 +106,9 @@ class VideoComposer:
                 "-i", str(audio_path),
                 "-c:v", "copy",
                 "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
+                "-af", "apad",
                 "-map", "0:v:0", "-map", "1:a:0",
-                "-t", f"{audio_dur:.2f}",
+                "-t", f"{video_dur:.2f}",
                 str(output_path),
             ]
 

@@ -33,6 +33,16 @@ Structure the video as a complete learning journey with these mandatory roles:
 - Last chapter is ALWAYS insight or summary (what did we really learn?)
 - n_beats per chapter will be overridden by the system — just set n_beats=5
 
+## Lesson continuity rules
+- Choose ONE central example and carry it through all five chapters
+- Put every given number, every computed result, notation, and visual strategy
+  into lesson_context so later chapter calls share the same source of truth
+- Compute derived values before returning JSON; never estimate arithmetic
+- For a Bayes medical-test example include prevalence, sensitivity, specificity,
+  false-positive rate, sample size, outcome counts, and the posterior
+- A discrete medical-test example uses population/count/tree visuals, not a
+  Gaussian or continuous bell curve
+
 ## JSON rules
 - Return ONLY a raw JSON object, no explanation, no markdown fences
 - Use snake_case for chapter ids
@@ -44,6 +54,14 @@ Return ONLY this JSON object (no extra text):
 {
   "title": "string — full video title",
   "total_duration_mins": number,
+  "lesson_context": {
+    "central_example": "one concrete example used throughout",
+    "givens": {"name": "exact value"},
+    "derived": {"name": "exact computed value"},
+    "notation": {"symbol": "meaning"},
+    "visual_strategy": "how quantities should animate",
+    "required_visuals": ["visual type"]
+  },
   "chapters": [
     {
       "id": "snake_case_id",
@@ -151,6 +169,10 @@ INSIGHT chapters:
 - Say math aloud: "lambda" not "λ", "the inverse of A" not "A^{-1}"
 - matrix_display is for NUMBERS ONLY — never put text labels inside matrix_values
   (use text_card or summary_card for labelled grids like confusion matrices)
+- Use summary_card at most once in the entire lesson, in the final insight only
+- Never put LaTeX commands such as \\frac or \\begin inside text_card; use an
+  equation visual so the expression renders as mathematics
+- Keep text_card copy short enough to read at normal size (roughly 12 words)
 
 ## Visual type reference
 | type               | required fields in visual{}                          |
@@ -169,6 +191,10 @@ INSIGHT chapters:
 | theorem_card       | theorem_name, statement_latex                        |
 | text_card          | text                                                 |
 | pause              | (no fields needed)                                   |
+| population_grid    | title, total, groups [{label, count, color}]          |
+| probability_tree   | root_label, branches [{label, probability, children}] |
+| probability_bars   | title, bars [{label, value, color}]                   |
+| bayes_update       | prior, sensitivity, specificity, sample_size          |
 
 ## LaTeX rules
 - Standard LaTeX math notation

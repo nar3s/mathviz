@@ -10,6 +10,7 @@ Validation layers:
 
 from __future__ import annotations
 
+import math
 import re
 
 # ── Beat types ────────────────────────────────────────────────────────────────
@@ -29,6 +30,10 @@ ALLOWED_BEAT_TYPES = {
     "theorem_card",
     "text_card",
     "pause",
+    "population_grid",
+    "probability_tree",
+    "probability_bars",
+    "bayes_update",
 }
 
 # Fields required in visual{} for each beat type
@@ -47,6 +52,10 @@ REQUIRED_VISUAL_FIELDS: dict[str, list[str]] = {
     "theorem_card":       ["theorem_name", "statement_latex"],
     "text_card":          ["text"],
     "pause":              [],
+    "population_grid":    ["title", "total", "groups"],
+    "probability_tree":   ["root_label", "branches"],
+    "probability_bars":   ["title", "bars"],
+    "bayes_update":       ["prior", "sensitivity", "specificity", "sample_size"],
 }
 
 # LaTeX fields that should pass brace validation
@@ -148,6 +157,27 @@ def validate_beat(beat: dict) -> list[str]:
         if field not in visual:
             errors.append(f"Beat '{bid}' ({beat_type}): missing required field '{field}'")
 
+    if beat_type == "text_card":
+        text = str(visual.get("text", ""))
+        latex_markers = (r"\frac", r"\begin", r"\sum", r"\int", r"\sqrt")
+        if any(marker in text for marker in latex_markers):
+            errors.append(
+                f"Beat '{bid}' (text_card): raw LaTeX must use an equation visual"
+            )
+
+    if beat_type == "population_grid" and "groups" in visual:
+        groups = visual["groups"]
+        if not isinstance(groups, list) or not groups:
+            errors.append(f"Beat '{bid}' (population_grid): 'groups' must be a non-empty list")
+    if beat_type == "probability_tree" and "branches" in visual:
+        branches = visual["branches"]
+        if not isinstance(branches, list) or not branches:
+            errors.append(f"Beat '{bid}' (probability_tree): 'branches' must be a non-empty list")
+    if beat_type == "probability_bars" and "bars" in visual:
+        bars = visual["bars"]
+        if not isinstance(bars, list) or not bars:
+            errors.append(f"Beat '{bid}' (probability_bars): 'bars' must be a non-empty list")
+
     for latex_field in _LATEX_FIELDS:
         val = visual.get(latex_field, "")
         if val and not check_braces(str(val)):
@@ -172,6 +202,35 @@ def validate_beats(beats: list[dict]) -> list[str]:
         errors.extend(validate_beat(beat))
 
     return errors
+
+
+def validate_plan_quality(
+    beats: list[dict], topic: str, target_duration_mins: int | float
+) -> list[str]:
+    """Return semantic quality warnings that schema validation cannot catch."""
+    warnings: list[str] = []
+    visual_types = [beat.get("visual", {}).get("type") for beat in beats]
+
+    summary_count = visual_types.count("summary_card")
+    if summary_count > 1:
+        warnings.append(f"summary_card appears {summary_count} times; maximum is one")
+
+    target_beats = max(12, math.ceil(float(target_duration_mins) * 60 / 7.0))
+    if len(beats) < target_beats * 0.7:
+        warnings.append(
+            f"only {len(beats)} beats for a {target_duration_mins}-minute target; "
+            f"expected about {target_beats}"
+        )
+
+    if "bayes" in topic.lower():
+        required = {"population_grid", "probability_tree", "probability_bars", "bayes_update"}
+        missing = sorted(required.difference(visual_types))
+        if missing:
+            warnings.append("Bayes lesson is missing required visuals: " + ", ".join(missing))
+        if {"graph_plot", "graph_animate"}.intersection(visual_types):
+            warnings.append("Bayes medical example contains an inappropriate continuous graph")
+
+    return warnings
 
 
 # ── Outline validation ────────────────────────────────────────────────────────

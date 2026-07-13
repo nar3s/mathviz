@@ -19,7 +19,9 @@ class TextCardScene(BaseEngineeringScene):
         self.setup_theme()
         self.add_audio()
 
-        t = self.safe_text(str(self.text), font_size=32, color=WHITE)
+        t = self.safe_text(
+            str(self.text), font_size=36, color=WHITE, max_chars_per_line=46
+        )
         t.move_to(ORIGIN)
 
         self.play(FadeIn(t, shift=UP * 0.3), run_time=0.8)

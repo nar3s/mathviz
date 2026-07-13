@@ -15,8 +15,10 @@ Each chapter call retries up to 3 times on failure.
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import logging
+import math
 
 from config.settings import settings
 from generator.llm_client import LLMClient, get_llm_client
@@ -26,7 +28,7 @@ from generator.prompts import (
     OUTLINE_JSON_FORMAT,
     OUTLINE_SYSTEM_PROMPT,
 )
-from generator.validator import validate_beats, validate_outline
+from generator.validator import validate_beats, validate_outline, validate_plan_quality
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +48,116 @@ def _strip_fences(raw: str) -> str:
             inner = inner[4:]
         raw = inner.rsplit("```", 1)[0].strip()
     return raw
+
+
+def _numeric_setting(name: str, default: float) -> float:
+    """Read a numeric setting without letting a mocked Settings object leak in."""
+    value = getattr(settings, name, default)
+    return float(value) if isinstance(value, (int, float)) else default
+
+
+def _target_beat_count(duration_mins: int | float) -> int:
+    """Number of beats needed to land close to the requested wall-clock time."""
+    seconds_per_beat = max(4.0, _numeric_setting("target_beat_duration", 7.0))
+    return max(12, math.ceil(float(duration_mins) * 60 / seconds_per_beat))
+
+
+def _chapter_quota(outline: dict, chapter_index: int) -> int:
+    """Distribute the exact content-beat budget across chapters."""
+    chapters = outline.get("chapters", [])
+    n_chapters = max(1, len(chapters))
+    # There is one separator between chapters and one controlled outro.
+    content_beats = max(
+        n_chapters * 3,
+        _target_beat_count(outline.get("total_duration_mins", 5)) - n_chapters,
+    )
+    base, remainder = divmod(content_beats, n_chapters)
+    quota = base + (1 if chapter_index < remainder else 0)
+    max_per_chapter = getattr(settings, "max_beats_per_chapter", 8)
+    if not isinstance(max_per_chapter, int):
+        max_per_chapter = 8
+    return min(max_per_chapter, max(3, quota))
+
+
+def _as_probability(value: object, default: float) -> float:
+    """Coerce values such as 0.95, '95%', or '0.95' into [0, 1]."""
+    try:
+        raw = str(value).strip()
+        number = float(raw.rstrip("%"))
+        if raw.endswith("%") or number > 1:
+            number /= 100
+        return min(1.0, max(0.0, number))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalise_lesson_context(topic: str, outline: dict) -> dict:
+    """Create a single source of truth shared by all parallel chapter calls."""
+    supplied = outline.get("lesson_context")
+    context = copy.deepcopy(supplied) if isinstance(supplied, dict) else {}
+    context.setdefault("central_example", "A single example carried through the lesson")
+    context.setdefault("givens", {})
+    context.setdefault("derived", {})
+    context.setdefault("notation", {})
+    context.setdefault("visual_strategy", "Animate quantities as they change")
+    context.setdefault("required_visuals", [])
+
+    topic_text = f"{topic} {outline.get('title', '')}".lower()
+    if "bayes" not in topic_text:
+        return context
+
+    givens = context["givens"] if isinstance(context["givens"], dict) else {}
+    prevalence = _as_probability(givens.get("prevalence"), 0.01)
+    sensitivity = _as_probability(givens.get("sensitivity"), 0.95)
+    specificity = _as_probability(givens.get("specificity"), 0.99)
+    try:
+        sample_size = max(100, int(float(givens.get("sample_size", 10_000))))
+    except (TypeError, ValueError):
+        sample_size = 10_000
+
+    diseased = round(sample_size * prevalence)
+    healthy = sample_size - diseased
+    true_positives = round(diseased * sensitivity)
+    false_negatives = diseased - true_positives
+    false_positives = round(healthy * (1 - specificity))
+    true_negatives = healthy - false_positives
+    positive_tests = true_positives + false_positives
+    posterior = true_positives / positive_tests if positive_tests else 0.0
+
+    context.update({
+        "central_example": f"A medical screening test in a population of {sample_size:,} people",
+        "givens": {
+            "sample_size": sample_size,
+            "prevalence": prevalence,
+            "sensitivity": sensitivity,
+            "specificity": specificity,
+            "false_positive_rate": 1 - specificity,
+        },
+        "derived": {
+            "diseased": diseased,
+            "healthy": healthy,
+            "true_positives": true_positives,
+            "false_negatives": false_negatives,
+            "false_positives": false_positives,
+            "true_negatives": true_negatives,
+            "positive_tests": positive_tests,
+            "posterior_given_positive": round(posterior, 8),
+            "posterior_percent": round(posterior * 100, 2),
+        },
+        "notation": {
+            "D": "person has the disease",
+            "+": "test result is positive",
+            "P(D|+)": "probability of disease after a positive result",
+        },
+        "visual_strategy": (
+            "Use a population grid, a probability tree, count bars, and an animated "
+            "prior-to-posterior Bayes update; this is discrete data, not a Gaussian curve."
+        ),
+        "required_visuals": [
+            "population_grid", "probability_tree", "probability_bars", "bayes_update"
+        ],
+    })
+    return context
 
 
 # ── Phase 1: Outline ──────────────────────────────────────────────────────────
@@ -83,15 +195,15 @@ async def generate_outline(
     # At ~10 s/beat: 5 min → 30 beats, 3 min → 18 beats, 10 min → 60 beats.
     # n_beats per chapter is overridden in _generate_chapter_beats regardless,
     # but telling the LLM the target chapter count keeps the outline coherent.
-    target_beats  = max(12, round(duration_mins * 60 / 10))
+    target_beats = _target_beat_count(duration_mins)
     # Cap at 5: the system prompt defines exactly 5 roles (WHY/WHAT/HOW/EXAMPLE/INSIGHT)
-    min_chapters  = min(5, max(3, round(target_beats / settings.max_beats_per_chapter)))
+    required_chapters = 5
 
     prompt = (
         f"Create a chapter outline for a {duration_mins}-minute video about: {topic}"
         f"{lang_note}"
-        f"\n\nPacing target: ~{target_beats} beats total ({duration_mins} min ÷ 10 s/beat). "
-        f"You MUST produce exactly {min_chapters} chapters."
+        f"\n\nPacing target: exactly {target_beats} beats total including transitions. "
+        f"You MUST produce exactly {required_chapters} chapters, one for each required role."
         f"\n\n{OUTLINE_JSON_FORMAT}"
     )
 
@@ -129,6 +241,8 @@ async def generate_outline(
                 "Outline: '%s', %d chapters (attempt %d)",
                 outline.get("title"), got_chapters, attempt + 1,
             )
+            outline["total_duration_mins"] = duration_mins
+            outline["lesson_context"] = _normalise_lesson_context(topic, outline)
             return outline
 
         except Exception as exc:  # noqa: BLE001
@@ -163,15 +277,8 @@ async def _generate_chapter_beats(
     # caps every video at ~n_chapters × quota beats regardless of the
     # requested length. Separators + closing contribute ~n_chapters beats,
     # so subtract them from the target before dividing.
-    duration_mins = outline.get("total_duration_mins", 5)
-    target_beats  = max(12, round(duration_mins * 60 / 10))
-    n_chapters    = max(1, len(chapters))
-    llm_beats     = max(0, target_beats - n_chapters)  # separators + closing
-    n_beats       = min(
-        settings.max_beats_per_chapter,
-        max(3, -(-llm_beats // n_chapters)),  # ceil division
-    )
     idx = next((i for i, c in enumerate(chapters) if c.get("id") == cid), -1)
+    n_beats = _chapter_quota(outline, max(0, idx))
     prev_ch = chapters[idx - 1] if idx > 0 else None
     next_ch = chapters[idx + 1] if idx >= 0 and idx < len(chapters) - 1 else None
 
@@ -191,6 +298,16 @@ async def _generate_chapter_beats(
     )
 
     role = chapter.get("role", "what")  # why | what | how | example | insight
+    lesson_context = json.dumps(
+        outline.get("lesson_context", {}), ensure_ascii=False, sort_keys=True, indent=2
+    )
+    bayes_note = ""
+    if "bayes" in f"{outline.get('title', '')} {concepts}".lower():
+        bayes_note = (
+            "\nFor this discrete medical example, never use graph_plot or graph_animate. "
+            "Prefer population_grid for WHY, probability_tree for WHAT, probability_bars "
+            "for HOW, and bayes_update for EXAMPLE."
+        )
 
     prompt = (
         f"Generate exactly {n_beats} beats for the '{ctitle}' chapter "
@@ -198,6 +315,11 @@ async def _generate_chapter_beats(
         f"Chapter role: {role.upper()} — follow the '{role}' beat arc from the system prompt.\n"
         f"This chapter covers: {concepts}.\n\n"
         f"{prev_note}{next_note}{lang_note}\n\n"
+        "SHARED LESSON CONTEXT (the single source of truth):\n"
+        f"{lesson_context}\n"
+        "Use these exact givens and derived values. Do not invent, round differently, "
+        "or contradict any number, notation, example, or conclusion in this context."
+        f"{bayes_note}\n\n"
         f"Use beat_ids: '{cid}_1', '{cid}_2', ...\n\n"
         f"{CHAPTER_JSON_FORMAT}"
     )
@@ -274,6 +396,212 @@ _CLOSING_NARRATION = {
 }
 
 
+def _population_visual(context: dict) -> dict:
+    derived = context["derived"]
+    return {
+        "type": "population_grid",
+        "title": f"A population of {context['givens']['sample_size']:,} people",
+        "total": context["givens"]["sample_size"],
+        "groups": [
+            {"label": "True positive", "count": derived["true_positives"], "color": "GREEN"},
+            {"label": "False negative", "count": derived["false_negatives"], "color": "RED"},
+            {"label": "False positive", "count": derived["false_positives"], "color": "YELLOW"},
+            {"label": "True negative", "count": derived["true_negatives"], "color": "BLUE"},
+        ],
+    }
+
+
+def _tree_visual(context: dict) -> dict:
+    givens = context["givens"]
+    return {
+        "type": "probability_tree",
+        "root_label": "One tested person",
+        "branches": [
+            {
+                "label": "Disease",
+                "probability": givens["prevalence"],
+                "children": [
+                    {"label": "Positive", "probability": givens["sensitivity"]},
+                    {"label": "Negative", "probability": 1 - givens["sensitivity"]},
+                ],
+            },
+            {
+                "label": "Healthy",
+                "probability": 1 - givens["prevalence"],
+                "children": [
+                    {"label": "Positive", "probability": givens["false_positive_rate"]},
+                    {"label": "Negative", "probability": givens["specificity"]},
+                ],
+            },
+        ],
+    }
+
+
+def _bars_visual(context: dict) -> dict:
+    givens = context["givens"]
+    posterior = context["derived"]["posterior_given_positive"]
+    return {
+        "type": "probability_bars",
+        "title": "Prior evidence and updated belief",
+        "bars": [
+            {"label": "Prior P(D)", "value": givens["prevalence"], "color": "BLUE"},
+            {"label": "Sensitivity", "value": givens["sensitivity"], "color": "GREEN"},
+            {"label": "False-positive rate", "value": givens["false_positive_rate"], "color": "YELLOW"},
+            {"label": "Posterior P(D | +)", "value": posterior, "color": "PURPLE"},
+        ],
+    }
+
+
+def _bayes_update_visual(context: dict) -> dict:
+    givens = context["givens"]
+    return {
+        "type": "bayes_update",
+        "prior": givens["prevalence"],
+        "sensitivity": givens["sensitivity"],
+        "specificity": givens["specificity"],
+        "sample_size": givens["sample_size"],
+    }
+
+
+def _beats_for_role(beats: list[dict], chapters: list[dict], role: str) -> list[dict]:
+    ids = [str(ch.get("id", "")) for ch in chapters if ch.get("role") == role]
+    return [
+        beat for beat in beats
+        if any(str(beat.get("beat_id", "")).startswith(f"{cid}_") for cid in ids)
+    ]
+
+
+def _postprocess_beats(
+    beats: list[dict], outline: dict, topic: str, language: str
+) -> list[dict]:
+    """Repair common LLM visual mistakes and enforce topic-specific invariants."""
+    beats = copy.deepcopy(beats)
+
+    # Raw LaTeX in Text() renders as tiny literal markup. Route it to MathTex.
+    latex_markers = (r"\frac", r"\begin", r"\sum", r"\int", r"\sqrt")
+    for beat in beats:
+        visual = beat.get("visual", {})
+        if visual.get("type") == "text_card" and any(
+            marker in str(visual.get("text", "")) for marker in latex_markers
+        ):
+            beat["visual"] = {
+                "type": "equation_reveal",
+                "latex": str(visual["text"]),
+                "label": visual.get("title", ""),
+            }
+
+    # A lesson should build visually, not end every chapter with another recap.
+    summary_indexes = [
+        i for i, beat in enumerate(beats)
+        if beat.get("visual", {}).get("type") == "summary_card"
+    ]
+    for index in summary_indexes[:-1]:
+        points = beats[index]["visual"].get("key_points", [])
+        title = str(points[0]) if points else "One idea to remember"
+        beats[index]["visual"] = {"type": "title_card", "title": title}
+
+    context = outline.get("lesson_context", {})
+    is_bayes = "bayes" in f"{topic} {outline.get('title', '')}".lower()
+    if not is_bayes or not isinstance(context.get("derived"), dict):
+        return beats
+
+    # Discrete screening outcomes are counts and branches, never bell curves.
+    for beat in beats:
+        if beat.get("visual", {}).get("type") in {"graph_plot", "graph_animate"}:
+            beat["visual"] = _bars_visual(context)
+
+    chapters = outline.get("chapters", [])
+    why_beats = _beats_for_role(beats, chapters, "why")
+    what_beats = _beats_for_role(beats, chapters, "what")
+    how_beats = _beats_for_role(beats, chapters, "how")
+    example_beats = _beats_for_role(beats, chapters, "example")
+
+    if why_beats:
+        why_beats[0]["visual"] = _population_visual(context)
+    if what_beats:
+        what_beats[min(1, len(what_beats) - 1)]["visual"] = _tree_visual(context)
+    if how_beats:
+        how_beats[0]["visual"] = _bars_visual(context)
+
+    derived = context["derived"]
+    givens = context["givens"]
+    if example_beats:
+        example_beats[0]["visual"] = _population_visual(context)
+        if language == "en":
+            example_beats[0]["narration"] = (
+                f"Start with {givens['sample_size']:,} people: {derived['diseased']} have the disease "
+                f"and {derived['healthy']:,} do not."
+            )
+    if len(example_beats) > 1:
+        example_beats[1]["visual"] = {
+            "type": "step_reveal",
+            "latex": (
+                f"{derived['diseased']} \\times {givens['sensitivity']:.2f}"
+                f" = {derived['true_positives']}"
+            ),
+            "step_number": 1,
+        }
+        if language == "en":
+            example_beats[1]["narration"] = (
+                f"Sensitivity catches {derived['true_positives']} of the "
+                f"{derived['diseased']} people who truly have the disease."
+            )
+    if len(example_beats) > 2:
+        example_beats[2]["visual"] = {
+            "type": "step_reveal",
+            "latex": (
+                f"{derived['healthy']} \\times {givens['false_positive_rate']:.2f}"
+                f" = {derived['false_positives']}"
+            ),
+            "step_number": 2,
+        }
+        if language == "en":
+            example_beats[2]["narration"] = (
+                f"The one-percent false-positive rate also flags {derived['false_positives']} "
+                "healthy people, creating the surprise."
+            )
+    if len(example_beats) > 3:
+        example_beats[3]["visual"] = _bayes_update_visual(context)
+        if language == "en":
+            example_beats[3]["narration"] = (
+                f"Among {derived['positive_tests']} positive tests, only "
+                f"{derived['true_positives']} are true, so the updated probability is "
+                f"{derived['posterior_percent']:.2f} percent."
+            )
+    if len(example_beats) > 4:
+        example_beats[4]["visual"] = {
+            "type": "equation_reveal",
+            "latex": (
+                f"P(D\\mid +)=\\frac{{{derived['true_positives']}}}"
+                f"{{{derived['true_positives']}+{derived['false_positives']}}}"
+                f"\\approx {derived['posterior_given_positive']:.4f}"
+            ),
+            "label": "The count form of Bayes' theorem",
+        }
+
+    # Short outputs can still miss a role; replace safe candidates so every
+    # probability lesson has all four purpose-built animations.
+    present = {beat.get("visual", {}).get("type") for beat in beats}
+    required = {
+        "population_grid": _population_visual,
+        "probability_tree": _tree_visual,
+        "probability_bars": _bars_visual,
+        "bayes_update": _bayes_update_visual,
+    }
+    candidates = [
+        beat for beat in beats
+        if beat.get("visual", {}).get("type") in {"text_card", "pause", "title_card"}
+        and not str(beat.get("beat_id", "")).startswith("ch")
+        and beat.get("beat_id") != "closing_outro"
+    ]
+    for visual_type, factory in required.items():
+        if visual_type not in present and candidates:
+            candidates.pop(0)["visual"] = factory(context)
+            present.add(visual_type)
+
+    return beats
+
+
 async def generate_scene_plan(
     topic: str,
     language: str = "en",
@@ -324,18 +652,23 @@ async def generate_scene_plan(
             })
         beats.extend(chapter_beats)
 
-    # ── Closing summary beat ──────────────────────────────────────────────────
+    # ── Controlled outro ──────────────────────────────────────────────────────
     # Always end with a deliberate wind-down so the video never feels abrupt.
-    chapter_titles = [ch.get("title", "") for ch in chapters]
     closing_template = _CLOSING_NARRATION.get(language, _CLOSING_NARRATION["en"])
     beats.append({
-        "beat_id": "closing_summary",
+        "beat_id": "closing_outro",
         "narration": closing_template.format(video_title=outline["title"]),
         "visual": {
-            "type": "summary_card",
-            "key_points": chapter_titles,
+            "type": "title_card",
+            "title": "Keep exploring",
+            "subtitle": outline["title"],
         },
     })
+
+    beats = _postprocess_beats(beats, outline, topic, language)
+    quality_warnings = validate_plan_quality(beats, topic, duration_mins)
+    for warning in quality_warnings:
+        log.warning("Plan quality: %s", warning)
 
     log.info(
         "Plan complete: '%s', %d chapters, %d beats total (incl. %d separators + closing)",
@@ -344,7 +677,7 @@ async def generate_scene_plan(
 
     # Duration sanity check: at ~10 s/beat, warn when the plan can't reach
     # the requested length (e.g. chapter cap hit on long videos).
-    planned_secs = len(beats) * 10
+    planned_secs = len(beats) * _numeric_setting("target_beat_duration", 7.0)
     target_secs  = duration_mins * 60
     if planned_secs < target_secs * 0.8:
         log.warning(
@@ -353,4 +686,10 @@ async def generate_scene_plan(
             planned_secs, duration_mins, len(beats),
         )
 
-    return {"title": outline["title"], "beats": beats}
+    return {
+        "title": outline["title"],
+        "target_duration_mins": duration_mins,
+        "beats": beats,
+        "lesson_context": outline.get("lesson_context", {}),
+        "quality_warnings": quality_warnings,
+    }

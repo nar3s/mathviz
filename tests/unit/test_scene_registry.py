@@ -22,6 +22,7 @@ import pytest
 
 from scenes import build_beat_scene
 from scenes.base import BaseEngineeringScene
+from scenes.bayes_update import BayesUpdateScene
 from scenes.equation_reveal import EquationRevealScene
 from scenes.equation_transform import EquationTransformScene
 from scenes.graph_animate import GraphAnimateScene
@@ -29,6 +30,9 @@ from scenes.graph_plot import GraphPlotScene
 from scenes.highlight import HighlightScene
 from scenes.matrix_display import MatrixDisplayScene
 from scenes.pause import PauseScene
+from scenes.population_grid import PopulationGridScene
+from scenes.probability_bars import ProbabilityBarsScene
+from scenes.probability_tree import ProbabilityTreeScene
 from scenes.step_reveal import StepRevealScene
 from scenes.summary_card import SummaryCardScene
 from scenes.text_card import TextCardScene
@@ -172,6 +176,19 @@ class TestKnownTypeMapping:
         cls = build_beat_scene(beat, SAMPLE_STYLE)
         assert issubclass(cls, PauseScene)
 
+    @pytest.mark.parametrize(
+        ("visual", "expected"),
+        [
+            ({"type": "population_grid", "title": "People", "total": 100, "groups": []}, PopulationGridScene),
+            ({"type": "probability_tree", "root_label": "Start", "branches": []}, ProbabilityTreeScene),
+            ({"type": "probability_bars", "title": "Odds", "bars": []}, ProbabilityBarsScene),
+            ({"type": "bayes_update", "prior": .01, "sensitivity": .95, "specificity": .99, "sample_size": 10000}, BayesUpdateScene),
+        ],
+    )
+    def test_probability_visual_mappings(self, visual, expected):
+        cls = build_beat_scene(_beat("prob", visual), SAMPLE_STYLE)
+        assert issubclass(cls, expected)
+
     def test_all_scene_classes_inherit_from_base(self):
         """All returned classes ultimately inherit from BaseEngineeringScene."""
         visuals = [
@@ -189,6 +206,10 @@ class TestKnownTypeMapping:
             {"type": "theorem_card", "theorem_name": "T", "statement_latex": "x"},
             {"type": "text_card", "text": "Hi"},
             {"type": "pause"},
+            {"type": "population_grid", "title": "People", "total": 100, "groups": []},
+            {"type": "probability_tree", "root_label": "Start", "branches": []},
+            {"type": "probability_bars", "title": "Odds", "bars": []},
+            {"type": "bayes_update", "prior": .01, "sensitivity": .95, "specificity": .99, "sample_size": 10000},
         ]
         for i, visual in enumerate(visuals):
             beat = _beat(f"b{i}", visual)

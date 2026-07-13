@@ -35,6 +35,7 @@ from generator.validator import validate_beats
 from narration.audio_cache import AudioCache
 from narration.sarvam_client import SarvamTTS
 from renderer import composer, render_engine, scene_builder
+from renderer.timing import balance_durations
 from tts.sarvam import generate_all_audio
 
 
@@ -74,10 +75,17 @@ async def run(plan_path: Path, quality: str, max_beats: int | None, job_id: str)
         bid      = beat["beat_id"]
         clip     = audio_clips.get(bid)
         tts_dur  = clip.duration if (clip and clip.duration > 0) else 8.0
-        durations[bid]   = max(tts_dur, settings.min_beat_duration)
+        durations[bid] = max(
+            tts_dur + settings.beat_tail_padding,
+            settings.min_beat_duration,
+        )
         wav = audio_dir / f"{bid}.wav"
         if wav.exists():
             audio_paths[bid] = wav
+
+    target_mins = plan.get("target_duration_mins")
+    if isinstance(target_mins, (int, float)) and not max_beats:
+        durations = balance_durations(durations, target_mins * 60)
 
     log.info("Audio done. Beat durations (s): %s",
              {k: round(v, 1) for k, v in durations.items()})
@@ -101,11 +109,13 @@ async def run(plan_path: Path, quality: str, max_beats: int | None, job_id: str)
         for bid, fp, cn in scene_entries
     ]
 
-    rendered_map = await render_engine.render_all_parallel(
+    rendered_map, render_errors = await render_engine.render_all_parallel(
         tasks=render_tasks, quality=quality,
         max_workers=settings.max_render_workers,
     )
     log.info("Rendered %d/%d beats", len(rendered_map), len(beats))
+    if render_errors:
+        log.warning("%d beat renders failed: %s", len(render_errors), render_errors)
 
     if not rendered_map:
         raise RuntimeError("All beats failed to render.")

@@ -232,10 +232,10 @@ class TestGenerateScenePlan:
 
         # Should have fallback beats (one per chapter) + separators + closing
         assert len(result["beats"]) >= 6
-        # Fallback beats are text_card; separators are title_card; closing is summary_card
+        # Fallback beats are text_card; separators and the controlled outro are title cards.
         fallback_beats = [
             b for b in result["beats"]
-            if not b["beat_id"].startswith("ch") and b["beat_id"] != "closing_summary"
+            if not b["beat_id"].startswith("ch") and b["beat_id"] != "closing_outro"
         ]
         for beat in fallback_beats:
             assert beat["visual"]["type"] == "text_card"

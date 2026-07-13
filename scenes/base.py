@@ -8,6 +8,7 @@ axes helpers, transitions, safe-zone fit helpers, and audio sync.
 from __future__ import annotations
 
 from pathlib import Path
+import textwrap
 
 from manim import (
     BLACK,
@@ -132,6 +133,20 @@ def normalize_text(text: str) -> str:
     return text
 
 
+def wrap_text(text: str, max_chars_per_line: int = 46) -> str:
+    """Wrap display text while preserving deliberate paragraph breaks."""
+    lines: list[str] = []
+    for original_line in str(text).splitlines() or [str(text)]:
+        wrapped = textwrap.wrap(
+            original_line,
+            width=max_chars_per_line,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        lines.extend(wrapped or [""])
+    return "\n".join(lines)
+
+
 def resolve_color(name: str | object, fallback=YELLOW) -> object:
     """
     Resolve a color name to a Manim color object.
@@ -210,8 +225,20 @@ class BaseEngineeringScene(Scene):
         self.fit(tex)
         return tex
 
-    def safe_text(self, text: str, font_size: int = 28, **kwargs) -> Text:
-        t = Text(normalize_text(text), font_size=font_size, **kwargs)
+    def safe_text(
+        self,
+        text: str,
+        font_size: int = 28,
+        max_chars_per_line: int | None = None,
+        **kwargs,
+    ) -> Text:
+        normalized = normalize_text(str(text))
+        wrap_at = max_chars_per_line
+        if wrap_at is None and max(len(line) for line in normalized.splitlines() or [""]) > 52:
+            wrap_at = 46
+        if wrap_at:
+            normalized = wrap_text(normalized, wrap_at)
+        t = Text(normalized, font_size=font_size, **kwargs)
         self.fit(t)
         return t
 

@@ -14,20 +14,23 @@ from scenes.base import BaseEngineeringScene
 
 class SummaryCardScene(BaseEngineeringScene):
     key_points: list = ["Key point 1", "Key point 2"]
+    title: str = "Key takeaways"
 
     def construct(self) -> None:
         self.setup_theme()
         self.add_audio()
 
         heading = self.safe_text(
-            "Summary",
+            self.title,
             font_size=40,
             color=self.accent_color,
             weight="BOLD",
         )
 
         bullets = [
-            self.safe_text(f"\u2022 {pt}", font_size=26, color=WHITE)
+            self.safe_text(
+                f"\u2022 {pt}", font_size=26, color=WHITE, max_chars_per_line=44
+            )
             for pt in self.key_points
         ]
 

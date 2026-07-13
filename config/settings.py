@@ -66,9 +66,17 @@ class Settings(BaseSettings):
     )
 
     # ── Beat timing ───────────────────────────────────────────────
+    target_beat_duration: float = Field(
+        default=7.0,
+        description="Planning budget per beat in seconds (includes a short visual hold)",
+    )
     min_beat_duration: float = Field(
-        default=8.0,
+        default=5.5,
         description="Minimum scene duration per beat in seconds",
+    )
+    beat_tail_padding: float = Field(
+        default=0.35,
+        description="Silent visual hold appended after each narration clip in seconds",
     )
 
     # ── Two-phase planning ────────────────────────────────────────
@@ -125,6 +133,10 @@ class Settings(BaseSettings):
         return self.output_dir / "final"
 
     @property
+    def plan_dir(self) -> Path:
+        return self.output_dir / "plans"
+
+    @property
     def cache_dir(self) -> Path:
         return self.output_dir / "cache"
 
@@ -142,6 +154,7 @@ class Settings(BaseSettings):
             self.raw_dir,
             self.audio_dir,
             self.final_dir,
+            self.plan_dir,
             self.audio_cache_dir,
             self.video_cache_dir,
         ]:

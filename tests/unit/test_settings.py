@@ -64,6 +64,12 @@ class TestSettingsDefaults:
         s = Settings(llm_api_key="")
         assert s.llm_api_key == ""
 
+    def test_beat_timing_defaults(self):
+        s = Settings()
+        assert s.target_beat_duration == 7.0
+        assert s.min_beat_duration == 5.5
+        assert s.beat_tail_padding == 0.35
+
 
 # ── Derived path properties ──────────────────────────────────────────────────
 
@@ -84,6 +90,10 @@ class TestDerivedPaths:
     def test_cache_dir_is_output_subdir(self):
         s = Settings()
         assert s.cache_dir == s.output_dir / "cache"
+
+    def test_plan_dir_is_output_subdir(self):
+        s = Settings()
+        assert s.plan_dir == s.output_dir / "plans"
 
     def test_audio_cache_dir_is_under_cache(self):
         s = Settings()
@@ -118,6 +128,7 @@ class TestEnsureDirs:
         assert s.raw_dir.exists()
         assert s.audio_dir.exists()
         assert s.final_dir.exists()
+        assert s.plan_dir.exists()
         assert s.audio_cache_dir.exists()
         assert s.video_cache_dir.exists()
 

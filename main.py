@@ -19,6 +19,7 @@ Pipeline (runs in background):
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 import uuid
@@ -44,6 +45,7 @@ from generator.validator import validate_beats
 from narration.audio_cache import AudioCache
 from narration.sarvam_client import SarvamTTS
 from renderer import composer, render_engine, scene_builder
+from renderer.timing import balance_durations
 from tts.sarvam import generate_all_audio
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -199,6 +201,16 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
 
         log.info("[%s] Plan: '%s', %d beats", job_id, plan["title"], len(beats))
 
+        # Always keep a local copy for diagnosis, even when R2 is disabled or
+        # temporarily unavailable. This captures the exact plan that rendered.
+        plan_path = settings.plan_dir / f"{job_id}.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(
+            plan_path.write_text,
+            json.dumps(plan, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
         # Persist LLM plan to R2 (best-effort, non-blocking)
         if settings.r2_enabled:
             try:
@@ -252,10 +264,15 @@ async def _run_pipeline(job_id: str, request: GenerateRequest) -> None:
             clip = audio_clips.get(bid)
             tts_dur = clip.duration if (clip and clip.duration > 0) else 8.0
             # Enforce minimum so viewers have time to absorb each visual
-            durations[bid] = max(tts_dur, settings.min_beat_duration)
+            durations[bid] = max(
+                tts_dur + settings.beat_tail_padding,
+                settings.min_beat_duration,
+            )
             wav = audio_dir / f"{bid}.wav"
             if wav.exists():
                 audio_paths[bid] = wav
+
+        durations = balance_durations(durations, request.duration_mins * 60)
 
         log.info("[%s] Audio done. Durations (s): %s",
                  job_id, {k: round(v, 1) for k, v in durations.items()})

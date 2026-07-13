@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 
 from scenes.base import BaseEngineeringScene
+from scenes.bayes_update import BayesUpdateScene
 from scenes.equation_reveal import EquationRevealScene
 from scenes.equation_transform import EquationTransformScene
 from scenes.graph_animate import GraphAnimateScene
@@ -20,6 +21,9 @@ from scenes.graph_plot import GraphPlotScene
 from scenes.highlight import HighlightScene
 from scenes.matrix_display import MatrixDisplayScene
 from scenes.pause import PauseScene
+from scenes.population_grid import PopulationGridScene
+from scenes.probability_bars import ProbabilityBarsScene
+from scenes.probability_tree import ProbabilityTreeScene
 from scenes.step_reveal import StepRevealScene
 from scenes.summary_card import SummaryCardScene
 from scenes.text_card import TextCardScene
@@ -43,6 +47,10 @@ _REGISTRY: dict[str, type[BaseEngineeringScene]] = {
     "theorem_card":       TheoremCardScene,
     "text_card":          TextCardScene,
     "pause":              PauseScene,
+    "population_grid":    PopulationGridScene,
+    "probability_tree":   ProbabilityTreeScene,
+    "probability_bars":   ProbabilityBarsScene,
+    "bayes_update":       BayesUpdateScene,
 }
 
 
@@ -123,4 +131,8 @@ __all__ = [
     "TheoremCardScene",
     "TextCardScene",
     "PauseScene",
+    "PopulationGridScene",
+    "ProbabilityTreeScene",
+    "ProbabilityBarsScene",
+    "BayesUpdateScene",
 ]
