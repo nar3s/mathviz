@@ -73,15 +73,15 @@ class Settings(BaseSettings):
 
     # ── Two-phase planning ────────────────────────────────────────
     max_beats_per_chapter: int = Field(
-        default=5,
-        description="Max beats per chapter call (keeps output tokens bounded)",
+        default=8,
+        description="Hard cap on beats per chapter call (keeps output tokens bounded)",
     )
     max_chapter_output_tokens: int = Field(
-        default=2500,
+        default=4000,
         description="Max output tokens for each chapter beats call (Gemini needs more than Claude)",
     )
     outline_output_tokens: int = Field(
-        default=1500,
+        default=2000,
         description="Max output tokens for the Phase-1 outline call (Gemini needs more than Claude)",
     )
 

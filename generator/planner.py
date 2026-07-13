@@ -7,7 +7,8 @@ Phase 1 — Outline (one call, ~300 tokens out):
 Phase 2 — Beats (parallel calls per chapter, ~400 tokens each):
     Chapter context → list of beats [{beat_id, narration, visual: {...}}]
 
-MAX_BEATS_PER_CHAPTER = 5 keeps each call's output bounded.
+Beats per chapter scale with the requested duration (~10 s/beat), capped
+by settings.max_beats_per_chapter to keep each call's output bounded.
 Each chapter call retries up to 3 times on failure.
 """
 
@@ -83,7 +84,8 @@ async def generate_outline(
     # n_beats per chapter is overridden in _generate_chapter_beats regardless,
     # but telling the LLM the target chapter count keeps the outline coherent.
     target_beats  = max(12, round(duration_mins * 60 / 10))
-    min_chapters  = min(6, max(3, round(target_beats / settings.max_beats_per_chapter)))
+    # Cap at 5: the system prompt defines exactly 5 roles (WHY/WHAT/HOW/EXAMPLE/INSIGHT)
+    min_chapters  = min(5, max(3, round(target_beats / settings.max_beats_per_chapter)))
 
     prompt = (
         f"Create a chapter outline for a {duration_mins}-minute video about: {topic}"
@@ -152,13 +154,23 @@ async def _generate_chapter_beats(
     """
     cid     = chapter.get("id",    "chapter")
     ctitle  = chapter.get("title", "Chapter")
-    # Always use max_beats_per_chapter — the LLM's n_beats suggestion is
-    # unreliable (consistently too low). Duration targets require every
-    # chapter to contribute its full quota.
-    n_beats  = settings.max_beats_per_chapter
     concepts = ", ".join(chapter.get("concepts", []))
 
     chapters = outline.get("chapters", [])
+
+    # Scale beats per chapter from the target duration — the LLM's n_beats
+    # suggestion is unreliable (consistently too low), and a fixed quota
+    # caps every video at ~n_chapters × quota beats regardless of the
+    # requested length. Separators + closing contribute ~n_chapters beats,
+    # so subtract them from the target before dividing.
+    duration_mins = outline.get("total_duration_mins", 5)
+    target_beats  = max(12, round(duration_mins * 60 / 10))
+    n_chapters    = max(1, len(chapters))
+    llm_beats     = max(0, target_beats - n_chapters)  # separators + closing
+    n_beats       = min(
+        settings.max_beats_per_chapter,
+        max(3, -(-llm_beats // n_chapters)),  # ceil division
+    )
     idx = next((i for i, c in enumerate(chapters) if c.get("id") == cid), -1)
     prev_ch = chapters[idx - 1] if idx > 0 else None
     next_ch = chapters[idx + 1] if idx >= 0 and idx < len(chapters) - 1 else None
@@ -329,4 +341,16 @@ async def generate_scene_plan(
         "Plan complete: '%s', %d chapters, %d beats total (incl. %d separators + closing)",
         outline["title"], n_chapters, len(beats), n_chapters - 1,
     )
+
+    # Duration sanity check: at ~10 s/beat, warn when the plan can't reach
+    # the requested length (e.g. chapter cap hit on long videos).
+    planned_secs = len(beats) * 10
+    target_secs  = duration_mins * 60
+    if planned_secs < target_secs * 0.8:
+        log.warning(
+            "Planned ~%ds of content for a %d-min target (%d beats). "
+            "Consider raising max_beats_per_chapter or chapter count.",
+            planned_secs, duration_mins, len(beats),
+        )
+
     return {"title": outline["title"], "beats": beats}
