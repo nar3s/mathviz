@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from generator.planner import _strip_fences, generate_outline
+from generator.planner import _loads_llm_json, _strip_fences, generate_outline
 from generator.validator import validate_outline
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "outline"
@@ -43,13 +43,16 @@ def _valid_outline_json() -> str:
 
 class TestOutlineJsonRobustness:
 
-    async def test_1_1_1_truncated_json_retries_and_raises(self):
+    async def test_1_1_1_truncated_json_uses_safe_outline_after_retries(self):
         """Truncated JSON on every attempt → raises ValueError after all retries."""
         truncated = '{"title": "Test", "chapters": [{"id": "intro", "title": "Intro", "n_beats": 2'
         # All 3 retries return truncated JSON
         llm = _mock_llm_sequence(truncated, truncated, truncated)
-        with pytest.raises(ValueError):
-            await generate_outline("topic", "en", 5, client=llm)
+        result = await generate_outline("topic", "en", 5, client=llm)
+        assert len(result["chapters"]) == 5
+        assert [chapter["role"] for chapter in result["chapters"]] == [
+            "why", "what", "how", "example", "insight"
+        ]
 
     async def test_1_1_1_truncated_json_succeeds_on_retry(self):
         """Truncated JSON on first attempt, valid on second → succeeds."""
@@ -58,6 +61,17 @@ class TestOutlineJsonRobustness:
         llm = _mock_llm_sequence(truncated, valid)
         result = await generate_outline("topic", "en", 5, client=llm)
         assert "chapters" in result
+
+    async def test_early_unterminated_context_uses_safe_outline(self):
+        """A response cut before chapters still has enough outline markers to recover."""
+        truncated = (
+            '{"title":"Gradient Descent","total_duration_mins":3,'
+            '"lesson_context":{"central_example":"Walking downhill'
+        )
+        llm = _mock_llm_sequence(truncated, truncated, truncated)
+        result = await generate_outline("gradient descent", "en", 3, client=llm)
+        assert len(result["chapters"]) == 5
+        assert result["chapters"][0]["role"] == "why"
 
     async def test_1_1_2_markdown_fenced_json_parsed_successfully(self):
         """Markdown-fenced JSON response is stripped and parsed correctly."""
@@ -74,12 +88,12 @@ class TestOutlineJsonRobustness:
         result = await generate_outline("topic", "en", 5, client=llm)
         assert "chapters" in result
 
-    async def test_1_1_3_trailing_comma_causes_retry(self):
+    async def test_1_1_3_trailing_comma_with_too_few_chapters_uses_fallback(self):
         """JSON with a trailing comma causes json.JSONDecodeError; all retries exhaust → ValueError."""
         bad_json = '{"title": "X", "chapters": [{"id": "a", "title": "A", "n_beats": 1,}]}'
         llm = _mock_llm_sequence(bad_json, bad_json, bad_json)
-        with pytest.raises(ValueError):
-            await generate_outline("topic", "en", 5, client=llm)
+        result = await generate_outline("topic", "en", 5, client=llm)
+        assert len(result["chapters"]) == 5
 
     async def test_1_1_3_trailing_comma_retry_then_valid(self):
         """Trailing comma on first attempt, valid JSON on second → succeeds."""
@@ -89,16 +103,30 @@ class TestOutlineJsonRobustness:
         result = await generate_outline("topic", "en", 5, client=llm)
         assert "chapters" in result
 
-    async def test_1_1_4_preamble_text_before_json_fails(self):
-        """
-        Text preamble before JSON (e.g., "Here's the outline: {...}") currently
-        fails because _strip_fences only handles ``` fences, not arbitrary preamble.
-        This documents the known behavior: ValueError is raised.
-        """
+    async def test_1_1_4_preamble_text_before_json_is_extracted(self):
+        """Text before a complete JSON object is ignored safely."""
         preamble_response = 'Here\'s the outline:\n' + _valid_outline_json()
-        llm = _mock_llm_sequence(preamble_response, preamble_response, preamble_response)
-        with pytest.raises(ValueError):
-            await generate_outline("topic", "en", 5, client=llm)
+        llm = _mock_llm(preamble_response)
+        result = await generate_outline("topic", "en", 5, client=llm)
+        assert result["title"] == "Simple Arithmetic"
+
+    def test_literal_newline_inside_string_is_repaired(self):
+        malformed = '{"title":"Gradient\nDescent","chapters":[]}'
+        assert _loads_llm_json(malformed)["title"] == "Gradient\nDescent"
+
+    def test_eof_truncated_object_is_closed(self):
+        malformed = '{"title":"Gradient Descent","chapters":[]'
+        assert _loads_llm_json(malformed) == {
+            "title": "Gradient Descent",
+            "chapters": [],
+        }
+
+    async def test_invalid_response_adds_correction_to_retry_prompt(self):
+        llm = _mock_llm_sequence('{"title":"broken', _valid_outline_json())
+        result = await generate_outline("topic", "en", 5, client=llm)
+        assert result["title"] == "Simple Arithmetic"
+        second_prompt = llm.complete.call_args_list[1].kwargs["user"]
+        assert "CORRECTION REQUIRED" in second_prompt
 
     async def test_1_1_5_empty_string_response_raises(self):
         """Empty string response raises ValueError."""

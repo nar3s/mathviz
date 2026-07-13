@@ -70,6 +70,9 @@ class TestSettingsDefaults:
         assert s.min_beat_duration == 5.5
         assert s.beat_tail_padding == 0.35
 
+    def test_outline_token_budget_allows_structured_context(self):
+        assert Settings().outline_output_tokens == 3000
+
 
 # ── Derived path properties ──────────────────────────────────────────────────
 

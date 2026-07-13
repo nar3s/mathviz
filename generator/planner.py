@@ -19,6 +19,7 @@ import copy
 import json
 import logging
 import math
+import re
 
 from config.settings import settings
 from generator.llm_client import LLMClient, get_llm_client
@@ -48,6 +49,125 @@ def _strip_fences(raw: str) -> str:
             inner = inner[4:]
         raw = inner.rsplit("```", 1)[0].strip()
     return raw
+
+
+def _extract_json_region(raw: str) -> str:
+    """Remove prose around the first JSON object/array returned by an LLM."""
+    raw = _strip_fences(raw)
+    starts = [index for index in (raw.find("{"), raw.find("[")) if index >= 0]
+    if not starts:
+        return raw
+    start = min(starts)
+    candidate = raw[start:]
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+    pairs = {"}": "{", "]": "["}
+    for index, char in enumerate(candidate):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char in "{[":
+            stack.append(char)
+        elif char in "}]":
+            if stack and stack[-1] == pairs[char]:
+                stack.pop()
+                if not stack:
+                    return candidate[: index + 1]
+    return candidate
+
+
+def _escape_string_controls(raw: str) -> str:
+    """Escape literal newlines/tabs inside JSON strings without changing layout."""
+    result: list[str] = []
+    in_string = False
+    escaped = False
+    replacements = {"\n": r"\n", "\r": r"\r", "\t": r"\t"}
+    for char in raw:
+        if in_string:
+            if escaped:
+                result.append(char)
+                escaped = False
+                continue
+            if char == "\\":
+                result.append(char)
+                escaped = True
+                continue
+            if char == '"':
+                in_string = False
+                result.append(char)
+                continue
+            if ord(char) < 0x20:
+                result.append(replacements.get(char, f"\\u{ord(char):04x}"))
+                continue
+        elif char == '"':
+            in_string = True
+        result.append(char)
+    return "".join(result)
+
+
+def _close_truncated_json(raw: str) -> str:
+    """Conservatively close an EOF-truncated string/object/array."""
+    candidate = _escape_string_controls(raw).rstrip()
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+    pairs = {"}": "{", "]": "["}
+    for char in candidate:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char in "{[":
+            stack.append(char)
+        elif char in "}]" and stack and stack[-1] == pairs[char]:
+            stack.pop()
+
+    if in_string:
+        if escaped:
+            candidate += "\\"
+        candidate += '"'
+    candidate = candidate.rstrip()
+    if candidate.endswith(":"):
+        candidate += " null"
+    if candidate.endswith(","):
+        candidate = candidate[:-1]
+    closers = {"{": "}", "[": "]"}
+    candidate += "".join(closers[opening] for opening in reversed(stack))
+    # Models commonly leave a comma immediately before a closing delimiter.
+    return re.sub(r",\s*([}\]])", r"\1", candidate)
+
+
+def _loads_llm_json(raw: str) -> object:
+    """Parse common imperfect LLM JSON while remaining deterministic."""
+    region = _extract_json_region(raw)
+    candidates = [region, _escape_string_controls(region), _close_truncated_json(region)]
+    first_error: json.JSONDecodeError | None = None
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            first_error = first_error or exc
+    if first_error is not None:
+        raise first_error
+    raise json.JSONDecodeError("No JSON object or array found", raw, 0)
 
 
 def _numeric_setting(name: str, default: float) -> float:
@@ -160,6 +280,40 @@ def _normalise_lesson_context(topic: str, outline: dict) -> dict:
     return context
 
 
+def _deterministic_outline(topic: str, duration_mins: int) -> dict:
+    """Safe five-role outline used only after repeated structured-JSON failures."""
+    clean_topic = " ".join(str(topic).split()).strip()
+    title = clean_topic[:96].rstrip(" .") or "Math visual lesson"
+    outline = {
+        "title": title,
+        "total_duration_mins": duration_mins,
+        "chapters": [
+            {
+                "id": "why_motivation", "title": "Why this matters", "role": "why",
+                "concepts": ["real-world motivation", "central question"], "n_beats": 5,
+            },
+            {
+                "id": "what_definition", "title": "The core idea", "role": "what",
+                "concepts": ["intuitive definition", "notation"], "n_beats": 5,
+            },
+            {
+                "id": "how_mechanics", "title": "How it works", "role": "how",
+                "concepts": ["step-by-step mechanics", "common pitfalls"], "n_beats": 5,
+            },
+            {
+                "id": "example_worked", "title": "A worked example", "role": "example",
+                "concepts": ["numerical example", "verification"], "n_beats": 5,
+            },
+            {
+                "id": "insight_summary", "title": "The deeper insight", "role": "insight",
+                "concepts": ["visual intuition", "key takeaway"], "n_beats": 5,
+            },
+        ],
+    }
+    outline["lesson_context"] = _normalise_lesson_context(topic, outline)
+    return outline
+
+
 # ── Phase 1: Outline ──────────────────────────────────────────────────────────
 
 async def generate_outline(
@@ -210,19 +364,33 @@ async def generate_outline(
     log.info("Phase 1 — outline for: %.60s (%d min)", topic, duration_mins)
 
     last_exc: Exception | None = None
+    retry_feedback = ""
+    saw_outline_shape = False
     for attempt in range(_MAX_OUTLINE_RETRIES):
         try:
             raw = await client.complete(
                 system=OUTLINE_SYSTEM_PROMPT,
-                user=prompt,
+                user=prompt + retry_feedback,
                 max_tokens=settings.outline_output_tokens,
-                temperature=0.6,
+                temperature=0.2,
                 label="outline",
             )
             raw = _strip_fences(raw)
+            saw_outline_shape = saw_outline_shape or (
+                '"chapters"' in raw
+                or (
+                    '"title"' in raw
+                    and any(
+                        marker in raw
+                        for marker in ('"total_duration_mins"', '"lesson_context"')
+                    )
+                )
+            )
             log.debug("Outline response (%d chars): %.400s", len(raw), raw)
 
-            outline = json.loads(raw)
+            outline = _loads_llm_json(raw)
+            if not isinstance(outline, dict):
+                raise ValueError(f"Expected a JSON object, got {type(outline).__name__}")
 
             errors = validate_outline(outline)
             if errors:
@@ -248,7 +416,19 @@ async def generate_outline(
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
             log.warning("Outline attempt %d/%d failed: %s", attempt + 1, _MAX_OUTLINE_RETRIES, exc)
+            retry_feedback = (
+                "\n\nCORRECTION REQUIRED: Your previous response was invalid: "
+                f"{str(exc)[:240]}. Return a shorter, complete raw JSON object. "
+                "Do not use markdown, comments, trailing commas, or literal line breaks "
+                "inside JSON strings. Check every quote and closing bracket before responding."
+            )
 
+    if saw_outline_shape:
+        log.error(
+            "Outline JSON remained invalid after %d attempts; using deterministic five-role outline",
+            _MAX_OUTLINE_RETRIES,
+        )
+        return _deterministic_outline(topic, duration_mins)
     raise ValueError(f"Outline failed after {_MAX_OUTLINE_RETRIES} attempts: {last_exc}") from last_exc
 
 
@@ -324,6 +504,7 @@ async def _generate_chapter_beats(
         f"{CHAPTER_JSON_FORMAT}"
     )
 
+    retry_feedback = ""
     for attempt_num in range(_MAX_CHAPTER_RETRIES):
         try:
             log.info(
@@ -332,14 +513,14 @@ async def _generate_chapter_beats(
             )
             raw = await client.complete(
                 system=CHAPTER_SYSTEM_PROMPT,
-                user=prompt,
+                user=prompt + retry_feedback,
                 max_tokens=settings.max_chapter_output_tokens,
-                temperature=0.7,
+                temperature=0.4,
                 label=f"chapter:{cid}",
             )
             raw = _strip_fences(raw)
 
-            parsed = json.loads(raw)
+            parsed = _loads_llm_json(raw)
             if isinstance(parsed, dict):
                 # unwrap common wrapping patterns
                 for key in ("beats", "chapter_beats", "items", "data"):
@@ -363,6 +544,12 @@ async def _generate_chapter_beats(
             log.warning(
                 "Chapter '%s' attempt %d/%d failed: %s",
                 cid, attempt_num + 1, _MAX_CHAPTER_RETRIES, exc,
+            )
+            retry_feedback = (
+                "\n\nCORRECTION REQUIRED: Your previous response was invalid: "
+                f"{str(exc)[:240]}. Return a shorter, complete raw JSON array with exactly "
+                f"{n_beats} beats. Do not use markdown, comments, trailing commas, or "
+                "literal line breaks inside JSON strings. Check all quotes and brackets."
             )
             if attempt_num == _MAX_CHAPTER_RETRIES - 1:
                 log.error("Chapter '%s': all retries exhausted — using fallback", cid)

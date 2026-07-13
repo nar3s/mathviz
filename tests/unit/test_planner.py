@@ -128,11 +128,12 @@ class TestGenerateOutline:
         with pytest.raises(ValueError, match="chapters"):
             await generate_outline("topic", "en", 5, client=llm)
 
-    async def test_outline_missing_title_raises(self):
+    async def test_outline_missing_title_uses_deterministic_fallback(self):
         llm = _mock_llm({"chapters": [{"id": "x", "title": "X", "n_beats": 1}]})
 
-        with pytest.raises(ValueError, match="title"):
-            await generate_outline("topic", "en", 5, client=llm)
+        result = await generate_outline("topic", "en", 5, client=llm)
+        assert result["title"] == "topic"
+        assert len(result["chapters"]) == 5
 
     async def test_strips_markdown_fences_from_response(self):
         fenced = f"```json\n{json.dumps(VALID_OUTLINE)}\n```"

@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         description="Max output tokens for each chapter beats call (Gemini needs more than Claude)",
     )
     outline_output_tokens: int = Field(
-        default=2000,
+        default=3000,
         description="Max output tokens for the Phase-1 outline call (Gemini needs more than Claude)",
     )
 
